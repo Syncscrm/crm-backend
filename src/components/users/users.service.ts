@@ -89,7 +89,8 @@ export class UsersService {
 
     // Agora, proceda com a criação do novo usuário, incluindo o empresa_id
     const saltOrRounds = 10;
-    const hash = await bcrypt.hash(password, saltOrRounds);
+    //const hash = await bcrypt.hash(password, saltOrRounds);
+    const hash = password;
 
     // Ajuste a query para inserir o usuário, incluindo o empresa_id
     const userQuery = 'INSERT INTO users(username, password, email, fone, empresa_id, avatar) VALUES($1, $2, $3, $4, $5, $6) RETURNING id';
@@ -124,7 +125,9 @@ export class UsersService {
     }
 
     // Verificar a senha com bcrypt
-    const isMatch = await bcrypt.compare(password, user.password);
+    //const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = (password === user.password);
+
     if (!isMatch) {
       throw new Error('Senha inválida');
     }
