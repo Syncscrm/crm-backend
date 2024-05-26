@@ -6,6 +6,104 @@ import { DatabaseService } from '../../database/database.service';
 export class CardService {
   constructor(private databaseService: DatabaseService) { }
 
+
+
+  async searchCardById(cardId: number, entityId: number, empresaId: number) {
+
+    console.log('cardId - service', cardId)
+    const query = `
+      SELECT c.*, me.nome_obra FROM cards c
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      WHERE c.card_id = $1 AND c.entity_id = $2 AND c.empresa_id = $3
+  
+      UNION
+  
+      SELECT c.*, me.nome_obra FROM cards c
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+      WHERE c.card_id = $1 AND ua.user_id = $2 AND c.empresa_id = $3
+  
+      UNION
+  
+      SELECT c.*, me.nome_obra FROM cards c
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+      WHERE c.card_id = $1 AND cs.shared_user_id = $2 AND c.empresa_id = $3;
+    `;
+    const values = [cardId, entityId, empresaId];
+    return await this.databaseService.query(query, values);
+  }
+  
+  
+
+  async getMessages(userId: number, destinatarioId: number) {
+    const query = `
+      SELECT * FROM messages
+      WHERE (id_remetente = $1 AND id_destinatario = $2) 
+         OR (id_remetente = $2 AND id_destinatario = $1)
+      ORDER BY created_at ASC;
+    `;
+    const values = [userId, destinatarioId];
+    const result = await this.databaseService.query(query, values);
+    return result;
+  }
+
+
+  async addMessage(id_remetente: number, id_destinatario: number, message: string, read: boolean) {
+    try {
+      // Inicia uma transação
+      await this.databaseService.query('BEGIN');
+  
+      // Insere a mensagem na tabela de mensagens
+      const insertMessageQuery = `
+        INSERT INTO messages(id_remetente, id_destinatario, message, created_at, read)
+        VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
+        RETURNING *;
+      `;
+      const messageValues = [id_remetente, id_destinatario, message, read];
+      const messageResult = await this.databaseService.query(insertMessageQuery, messageValues);
+  
+      // Finaliza a transação com sucesso
+      await this.databaseService.query('COMMIT');
+  
+      return messageResult.rows[0]; // Retorna a mensagem adicionada
+    } catch (error) {
+      // Reverte todas as operações se ocorrer algum erro
+      await this.databaseService.query('ROLLBACK');
+      throw new Error('Erro ao adicionar mensagem: ' + error.message);
+    }
+  }
+  
+  
+  
+
+  
+  async findCardsPCP(entity_id: number, empresa_id: number) {
+    const query = `
+      -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados
+      WITH CombinedCards AS (
+        SELECT c.*, me.*
+        FROM cards c
+        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+        WHERE c.entity_id = $1 AND c.empresa_id = $2
+  
+        UNION
+  
+        SELECT c.*, me.*
+        FROM cards c
+        INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+        WHERE ua.user_id = $1 AND c.empresa_id = $2
+      )
+      SELECT * FROM CombinedCards;
+    `;
+  
+    const values = [entity_id, empresa_id];
+    return await this.databaseService.query(query, values);
+  }
+
+  
+
   async novoParticipante(
     name: string,
     email: string,
@@ -111,7 +209,7 @@ async importSuiteFlow(
     const query = `
     UPDATE cards
     SET column_id = $2, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $1
+    WHERE card_id = $1
     RETURNING *;
   `;
     const values = [cardId, columnId];
@@ -143,9 +241,9 @@ async importSuiteFlow(
       previsao_vistoria_pre, status_vistoria_pre, previsao_entrega_obra, status_entrega_obra,
       previsao_instalacao, status_instalacao, previsao_vistoria_pos, status_vistoria_pos,
       previsao_assistencia, status_assistencia, horas_producao, quantidade_esquadrias,
-      quantidade_quadros, metros_quadrados
+      quantidade_quadros, metros_quadrados, cor
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
     )
     ON CONFLICT (card_id) DO UPDATE SET
       nome_obra = EXCLUDED.nome_obra,
@@ -169,7 +267,8 @@ async importSuiteFlow(
       horas_producao = EXCLUDED.horas_producao,
       quantidade_esquadrias = EXCLUDED.quantidade_esquadrias,
       quantidade_quadros = EXCLUDED.quantidade_quadros,
-      metros_quadrados = EXCLUDED.metros_quadrados
+      metros_quadrados = EXCLUDED.metros_quadrados,
+      cor = EXCLUDED.cor
     RETURNING *;
   `;
     const values = [
@@ -178,19 +277,19 @@ async importSuiteFlow(
       esquadriaData.previsao_vistoria_pre, esquadriaData.status_vistoria_pre, esquadriaData.previsao_entrega_obra, esquadriaData.status_entrega_obra,
       esquadriaData.previsao_instalacao, esquadriaData.status_instalacao, esquadriaData.previsao_vistoria_pos, esquadriaData.status_vistoria_pos,
       esquadriaData.previsao_assistencia, esquadriaData.status_assistencia, esquadriaData.horas_producao, esquadriaData.quantidade_esquadrias,
-      esquadriaData.quantidade_quadros, esquadriaData.metros_quadrados
+      esquadriaData.quantidade_quadros, esquadriaData.metros_quadrados, esquadriaData.cor
     ];
     return await this.databaseService.query(upsertQuery, values);
   }
 
-  async updateCardStatus(id: number, status: string) {
+  async updateCardStatus(id: number, status: string, columnId: number | null) {
     const query = `
       UPDATE cards
-      SET status = $2, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
+      SET status = $2, column_id = COALESCE($3, column_id), status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = $1
       RETURNING *;
     `;
-    const values = [id, status];
+    const values = [id, status, columnId];
     try {
       const result = await this.databaseService.query(query, values);
       return result[0];
@@ -198,6 +297,44 @@ async importSuiteFlow(
       throw new Error('Erro ao atualizar o status do card: ' + error.message);
     }
   }
+  
+
+  async updateCardStatusVendaPerdida(id: number, status: string, motivo: string, columnId: number) {
+    const query = `
+      UPDATE cards
+      SET status = $2, motivo_venda_perdida = $3, column_id = $4, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, status, motivo, columnId];
+    try {
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o status do card: ' + error.message);
+    }
+  }
+
+
+  
+
+  async updateCardArquivado(id: number, status: string, columnId: number) {
+    const query = `
+      UPDATE cards
+      SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, status, columnId];
+    try {
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o status do card: ' + error.message);
+    }
+  }
+  
+  
 
 
 
@@ -230,39 +367,44 @@ async importSuiteFlow(
 
 
   async searchCardsByName(name: string, entityId: number, empresaId: number) {
-    const likeName = `%${name}%`; // Prepara o termo de busca para uso com ILIKE
+    // Prepara o termo de busca para encontrar qualquer correspondência parcial
+    const likePattern = `%${name}%`; // Isso vai encontrar qualquer sequência que contenha 'name'
+
     const query = `
       -- Primeiro, selecionamos os cards do usuário atual que correspondem ao termo de busca
       SELECT c.*, me.nome_obra FROM cards c
-      LEFT JOIN modulo_esquadrias me ON me.card_id = c.id
-      WHERE (c.name ILIKE $1 OR c.document_number ILIKE $1 OR c.fone ILIKE $1 OR c.city ILIKE $1) AND c.entity_id = $2 AND c.empresa_id = $3
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      WHERE (c.name ILIKE $1 OR c.document_number ILIKE $1) AND c.entity_id = $2 AND c.empresa_id = $3
 
       UNION
 
       -- Depois, selecionamos os cards de todos os afilhados do usuário que correspondem ao termo de busca
       SELECT c.*, me.nome_obra FROM cards c
-      LEFT JOIN modulo_esquadrias me ON me.card_id = c.id
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-      WHERE (c.name ILIKE $1 OR c.document_number ILIKE $1 OR c.fone ILIKE $1 OR c.city ILIKE $1) AND ua.user_id = $2 AND c.empresa_id = $3
+      WHERE (c.name ILIKE $1 OR c.document_number ILIKE $1) AND ua.user_id = $2 AND c.empresa_id = $3
 
       UNION
 
       -- Finalmente, adicionamos os cards que foram compartilhados com este usuário
       SELECT c.*, me.nome_obra FROM cards c
-      LEFT JOIN modulo_esquadrias me ON me.card_id = c.id
-      INNER JOIN card_shareds cs ON cs.card_id = c.id
-      WHERE (c.name ILIKE $1 OR c.document_number ILIKE $1 OR c.fone ILIKE $1 OR c.city ILIKE $1) AND cs.shared_user_id = $2 AND c.empresa_id = $3;
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+      WHERE (c.name ILIKE $1 OR c.document_number ILIKE $1) AND cs.shared_user_id = $2 AND c.empresa_id = $3;
     `;
-    const values = [likeName, entityId, empresaId];
+    const values = [likePattern, entityId, empresaId];
     return await this.databaseService.query(query, values);
-  }
+}
+
+
+
 
   async getOverdueTasks(userId: number) {
     const query = `
   SELECT ct.*, c.*, me.nome_obra  -- Adiciona o nome_obra de modulo_esquadrias
   FROM card_tasks ct
-  JOIN cards c ON ct.card_id = c.id  -- Junta com a tabela de cards onde os IDs correspondem
-  LEFT JOIN modulo_esquadrias me ON c.id = me.card_id  -- Junta com modulo_esquadrias onde card_id corresponde
+  JOIN cards c ON ct.card_id = c.card_id  -- Junta com a tabela de cards onde os IDs correspondem
+  LEFT JOIN modulo_esquadrias me ON c.card_id = me.card_id  -- Junta com modulo_esquadrias onde card_id corresponde
   WHERE ct.user_id = $1
     AND ct.due_date::date <= CURRENT_DATE  -- Apenas tarefas vencidas
     AND ct.completed = false  -- Apenas tarefas não concluídas
@@ -348,7 +490,7 @@ async importSuiteFlow(
         const updateCardQuery = `
           UPDATE cards
           SET updated_at = CURRENT_TIMESTAMP
-          WHERE id = $1;
+          WHERE card_id = $1;
         `;
         await this.databaseService.query(updateCardQuery, [cardId]);
       }
@@ -402,7 +544,7 @@ async importSuiteFlow(
       const updateCardQuery = `
         UPDATE cards
         SET updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1;
+        WHERE card_id = $1;
       `;
       await this.databaseService.query(updateCardQuery, [tarefaData.card_id]);
 
@@ -424,7 +566,7 @@ async importSuiteFlow(
     const query = `
       UPDATE cards
       SET potencial_venda = $2, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
+      WHERE card_id = $1
       RETURNING *;
     `;
     const values = [id, potencialVenda];
@@ -467,7 +609,7 @@ async importSuiteFlow(
       const updateCardQuery = `
         UPDATE cards
         SET updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1;
+        WHERE card_id = $1;
       `;
       await this.databaseService.query(updateCardQuery, [card_id]);
   
@@ -543,37 +685,75 @@ async importSuiteFlow(
   }
 
 
-  async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number) {
+  // async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number) {
+  //   const query = `
+  //     -- Consulta atualizada para incluir apenas nome_obra da tabela modulo_esquadrias
+  //     WITH CombinedCards AS (
+  //       SELECT c.*, me.nome_obra
+  //       FROM cards c
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE c.entity_id = $1 AND c.empresa_id = $2
+
+  //       UNION
+
+  //       SELECT c.*, me.nome_obra
+  //       FROM cards c
+  //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE ua.user_id = $1 AND c.empresa_id = $2
+
+  //       UNION
+
+  //       SELECT c.*, me.nome_obra
+  //       FROM cards c
+  //       INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
+  //     )
+  //     SELECT * FROM CombinedCards;
+  //   `;
+
+  //   const values = [entity_id, empresa_id];
+  //   return await this.databaseService.query(query, values);
+  // }
+
+  // 
+  
+  async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number, dataInicial: string, dataFinal: string) {
     const query = `
-      -- Consulta atualizada para incluir apenas nome_obra da tabela modulo_esquadrias
       WITH CombinedCards AS (
-        SELECT c.*, me.nome_obra
+        SELECT c.*, me.nome_obra, false AS compartilhamento
         FROM cards c
-        LEFT JOIN modulo_esquadrias me ON me.card_id = c.id
+        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
         WHERE c.entity_id = $1 AND c.empresa_id = $2
-
+        AND c.created_at BETWEEN $3 AND $4
+  
         UNION
-
-        SELECT c.*, me.nome_obra
+  
+        SELECT c.*, me.nome_obra, false AS compartilhamento
         FROM cards c
         INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-        LEFT JOIN modulo_esquadrias me ON me.card_id = c.id
+        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
         WHERE ua.user_id = $1 AND c.empresa_id = $2
-
+        AND c.created_at BETWEEN $3 AND $4
+  
         UNION
-
-        SELECT c.*, me.nome_obra
+  
+        SELECT c.*, me.nome_obra, true AS compartilhamento
         FROM cards c
-        INNER JOIN card_shareds cs ON cs.card_id = c.id
-        LEFT JOIN modulo_esquadrias me ON me.card_id = c.id
+        INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
         WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
+        AND c.created_at BETWEEN $3 AND $4
       )
       SELECT * FROM CombinedCards;
     `;
-
-    const values = [entity_id, empresa_id];
+  
+    const values = [entity_id, empresa_id, dataInicial, dataFinal];
     return await this.databaseService.query(query, values);
   }
+  
+  
 
 
 
@@ -581,19 +761,19 @@ async importSuiteFlow(
 
   async update(id: number, name: string, state: string, city: string, fone: string, email: string, column_id: number, entity_id: number, empresa_id: number, document_number: string, cost_value: number, sale_value: number, status: string) {
     // Consulta para obter o status atual do banco de dados
-    const statusCheckQuery = 'SELECT status FROM cards WHERE id = $1';
+    const statusCheckQuery = 'SELECT status FROM cards WHERE card_id = $1';
     const statusCheckResult = await this.databaseService.query(statusCheckQuery, [id]);
 
     //console.log('Atualmente no banco: ', statusCheckResult[0].status, 'no front: ' )
     if (statusCheckResult[0].status == status) {
       //console.log('Status igual')
-      const query = 'UPDATE cards SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8, document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *';
+      const query = 'UPDATE cards SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8, document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP WHERE card_id = $1 RETURNING *';
       const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status];
       const result = await this.databaseService.query(query, values);
       return result;
     } else {
       //console.log('Status diferente')
-      const query = 'UPDATE cards SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8, document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP, status_date = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *';
+      const query = 'UPDATE cards SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8, document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP, status_date = CURRENT_TIMESTAMP WHERE card_id = $1 RETURNING *';
       const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status];
       const result = await this.databaseService.query(query, values);
       return result;

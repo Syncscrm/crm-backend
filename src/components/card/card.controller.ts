@@ -6,6 +6,47 @@ import { CardService } from './card.service';
 export class CardController {
   constructor(private readonly cardService: CardService) { }
 
+  @Get('search-card-id')
+  async searchCardById(
+    @Query('card_id') cardId: number,
+    @Query('entityId', ParseIntPipe) entityId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    console.log('cardId - controller', cardId)
+
+    return await this.cardService.searchCardById(cardId, entityId, empresaId);
+  }
+  
+  
+
+  @Get('fetch-messages/:userId/:destinatarioId')
+  async getMessages(
+    
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('destinatarioId', ParseIntPipe) destinatarioId: number
+  ) {
+
+    return await this.cardService.getMessages(userId, destinatarioId);
+  }
+
+
+  @Post('add-messenger')
+  async addMessage(@Body() body) {
+    const { id_remetente, id_destinatario, message, read } = body;
+    return await this.cardService.addMessage(id_remetente, id_destinatario, message, read);
+  }
+  
+
+
+  @Get('pcp/:entityId/:empresaId')
+  async findCardsPCP(@Param('entityId', ParseIntPipe) entityId: number, @Param('empresaId', ParseIntPipe) empresaId: number) {
+    return await this.cardService.findCardsPCP(entityId, empresaId);
+  }
+
+
+
+  
+
   @Post('new-participante')
   async novoParticipante(@Body() body) {
       const {
@@ -71,9 +112,26 @@ export class CardController {
 
   @Post('update-status')
   async updateCardStatus(@Body() body) {
-    const { id, status } = body;
-    return await this.cardService.updateCardStatus(id, status);
+    const { id, status, columnId } = body;
+    return await this.cardService.updateCardStatus(id, status, columnId);
   }
+  
+
+  @Post('update-status-venda-perdida')
+  async updateCardStatusVendaPerdida(@Body() body) {
+    const { id, status, motivo, columnId } = body;
+    return await this.cardService.updateCardStatusVendaPerdida(id, status, motivo, columnId);
+  }
+
+  @Post('update-arquivados')
+  async updateCardArquivado(@Body() body) {
+    const { id, status, columnId } = body;
+    return await this.cardService.updateCardArquivado(id, status, columnId);
+  }
+  
+  
+  
+  
 
 
   @Get('/columns/findByName')
@@ -167,10 +225,20 @@ export class CardController {
     return await this.cardService.create(name, state, city, fone, email, column_id, entity_id, empresa_id);
   }
 
+  // @Get('find/:entityId/:empresaId')
+  // async findCards(@Param('entityId', ParseIntPipe) entityId: number, @Param('empresaId', ParseIntPipe) empresaId: number) {
+  //   return await this.cardService.findCardsByEntityAndEmpresa(entityId, empresaId);
+  // }
+
   @Get('find/:entityId/:empresaId')
-  async findCards(@Param('entityId', ParseIntPipe) entityId: number, @Param('empresaId', ParseIntPipe) empresaId: number) {
-    return await this.cardService.findCardsByEntityAndEmpresa(entityId, empresaId);
-  }
+async findCards(
+  @Param('entityId', ParseIntPipe) entityId: number,
+  @Param('empresaId', ParseIntPipe) empresaId: number,
+  @Query('dataInicial') dataInicial: string,
+  @Query('dataFinal') dataFinal: string
+) {
+  return await this.cardService.findCardsByEntityAndEmpresa(entityId, empresaId, dataInicial, dataFinal);
+}
 
 
   
