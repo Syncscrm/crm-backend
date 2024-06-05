@@ -1,10 +1,94 @@
 // src/components/processColumns/processColumns.controller.ts
-import { Controller, Query, Post, Body, Get, Param, ParseIntPipe, Delete } from '@nestjs/common';
+import { Controller, Query, Post, Body, Get, Param, ParseIntPipe, Delete, Put } from '@nestjs/common';
 import { CardService } from './card.service';
 
 @Controller('card')
 export class CardController {
   constructor(private readonly cardService: CardService) { }
+
+
+
+  @Post('update-etiqueta')
+  async updateCardEtiqueta(@Body() body) {
+    const { cardId, etiqueta_id } = body;
+    return await this.cardService.updateCardEtiqueta(cardId, etiqueta_id);
+  }
+
+  @Get('etiquetas/:empresaId')
+  async buscarEtiquetas(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return await this.cardService.buscarEtiquetas(empresaId);
+  }
+
+
+
+
+  @Get('sold-last-minute/:empresaId')
+  async findSoldLastMinute(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return await this.cardService.findSoldLastMinute(empresaId);
+  }
+
+
+
+
+
+
+  @Get('cor/:empresaId')
+  async bucarCor(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return await this.cardService.bucarCor(empresaId);
+  }
+
+  @Get('produtos/:empresaId')
+  async bucarProdutos(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return await this.cardService.bucarProdutos(empresaId);
+  }
+
+  @Get('origens/:empresaId')
+  async bucarOrigens(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return await this.cardService.bucarOrigens(empresaId);
+  }
+  
+
+
+// No controlador (controller)
+@Put('mark-messages-as-read/:userId/:destinatarioId')
+async markMessagesAsRead(
+  @Param('userId', ParseIntPipe) userId: number,
+  @Param('destinatarioId', ParseIntPipe) destinatarioId: number,
+) {
+  await this.cardService.markMessagesAsRead(userId, destinatarioId);
+}
+
+
+// No controlador (controller)
+@Get('unread-messages-count/:userId/:senderId')
+async getUnreadMessagesCount(
+  @Param('userId', ParseIntPipe) userId: number,
+  @Param('senderId', ParseIntPipe) senderId: number,
+) {
+  return await this.cardService.getUnreadMessagesCount(userId, senderId);
+}
+
+// No controlador (controller)
+@Get('total-unread-messages-count/:userId')
+async getTotalUnreadMessagesCount(
+  @Param('userId', ParseIntPipe) userId: number,
+) {
+  return await this.cardService.getTotalUnreadMessagesCount(userId);
+}
+
+
+
+
 
   @Get('search-card-id')
   async searchCardById(
@@ -243,11 +327,20 @@ async findCards(
 
   
 
-  @Post('update')
-  async update(@Body() body) {
-    const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status } = body;
-    return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status);
-  }
+// @Post('update')
+// async update(@Body() body) {
+//   const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto } = body;
+//   return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto);
+// }
+
+
+@Post('update')
+async update(@Body() body) {
+    const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id } = body;
+    return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id);
+}
+
+
 
   @Get('sales/total/:entityId')
   async getTotalSales(
