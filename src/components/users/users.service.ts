@@ -12,6 +12,43 @@ export class UsersService {
     private jwtService: JwtService, // Injetar o JwtService
   ) { }
 
+
+
+
+
+
+
+  async getUserColumnPermissions(userId: number): Promise<{ columnId: number, canEdit: boolean }[]> {
+    console.log('getUserColumnPermissions')
+    const query = 'SELECT column_id AS "columnId", can_edit AS "canEdit" FROM user_permissions WHERE user_id = $1';
+    const result = await this.databaseService.query(query, [userId]);
+    return result;
+  }
+
+  async addColumnPermissionToUser(userId: number, columnId: number, canEdit: boolean, empresaId: number): Promise<void> {
+    console.log('addColumnPermissionToUser')
+    const query = `
+      INSERT INTO user_permissions (user_id, column_id, can_edit, empresa_id)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (user_id, column_id) DO UPDATE SET can_edit = EXCLUDED.can_edit, updated_at = CURRENT_TIMESTAMP
+    `;
+    await this.databaseService.query(query, [userId, columnId, canEdit, empresaId]);
+  }
+
+  async removeColumnPermissionFromUser(userId: number, columnId: number): Promise<void> {
+    console.log('removeColumnPermissionFromUser')
+    const query = 'DELETE FROM user_permissions WHERE user_id = $1 AND column_id = $2';
+    await this.databaseService.query(query, [userId, columnId]);
+  }
+
+
+
+
+
+
+
+
+
   async addAfilhadoToUser(userId: number, afilhadoId: number): Promise<void> {
     const query = 'INSERT INTO user_afilhados (user_id, afilhado_id) VALUES ($1, $2)';
     await this.databaseService.query(query, [userId, afilhadoId]);

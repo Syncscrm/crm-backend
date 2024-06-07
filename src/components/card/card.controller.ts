@@ -8,6 +8,33 @@ export class CardController {
 
 
 
+
+
+
+  @Post('/enviar')
+  async enviarMensagem(@Body() body: { numero: string; contato: string; mensagem: string }): Promise<string> {
+    const { numero, contato, mensagem } = body;
+
+    console.log('controller', numero, contato, mensagem)
+    await this.cardService.enviarMensagemParaBotConversa(numero, contato, mensagem);
+    return 'Mensagem enviada com sucesso!';
+  }
+
+
+
+
+
+
+
+  @Post('update-block-column')
+  async updateBlockColumn(@Body() body) {
+    const { id, block_column } = body;
+    return await this.cardService.updateBlockColumn(id, block_column);
+  }
+
+
+
+
   @Post('update-etiqueta')
   async updateCardEtiqueta(@Body() body) {
     const { cardId, etiqueta_id } = body;

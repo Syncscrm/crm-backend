@@ -1,75 +1,126 @@
 // src/users/users.controller.ts
-import { Controller, Get, Query, Post, Body, Param, Patch, Delete,  HttpException, HttpStatus, ParseIntPipe, Put  } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Patch, Delete, HttpException, HttpStatus, ParseIntPipe, Put, ParseBoolPipe } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
 
- @Post(':userId/afilhados')
-async addAfilhadoToUser(
+
+
+
+
+
+
+
+  @Get(':userId/permissions')
+  async getUserColumnPermissions(
+    @Param('userId', ParseIntPipe) userId: number
+  ) {
+    const permissions = await this.usersService.getUserColumnPermissions(userId);
+    return permissions;
+  }
+
+  @Post(':userId/permissions')
+  async addColumnPermissionToUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body('columnId', ParseIntPipe) columnId: number,
+    @Body('canEdit', ParseBoolPipe) canEdit: boolean,
+    @Body('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    await this.usersService.addColumnPermissionToUser(userId, columnId, canEdit, empresaId);
+    return { message: 'Permissão adicionada com sucesso ao usuário.' };
+  }
+
+  @Delete(':userId/permissions/:columnId')
+  async removeColumnPermissionFromUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('columnId', ParseIntPipe) columnId: number
+  ) {
+    await this.usersService.removeColumnPermissionFromUser(userId, columnId);
+    return { message: 'Permissão removida com sucesso do usuário.' };
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @Post(':userId/afilhados')
+  async addAfilhadoToUser(
     @Param('userId', ParseIntPipe) userId: number,
     @Body('afilhadoId', ParseIntPipe) afilhadoId: number
-) {
+  ) {
     await this.usersService.addAfilhadoToUser(userId, afilhadoId);
     return { message: 'Afilhado adicionado com sucesso.' };
-}
+  }
 
-@Delete(':userId/afilhados/:afilhadoId')
-async removeAfilhadoFromUser(
+  @Delete(':userId/afilhados/:afilhadoId')
+  async removeAfilhadoFromUser(
     @Param('userId', ParseIntPipe) userId: number,
     @Param('afilhadoId', ParseIntPipe) afilhadoId: number
-) {
+  ) {
     await this.usersService.removeAfilhadoFromUser(userId, afilhadoId);
     return { message: 'Afilhado removido com sucesso.' };
-}
+  }
 
 
-@Get(':userId/afilhados')
-async getUserAfilhados(@Param('userId', ParseIntPipe) userId: number) {
+  @Get(':userId/afilhados')
+  async getUserAfilhados(@Param('userId', ParseIntPipe) userId: number) {
     const afilhados = await this.usersService.getUserAfilhados(userId);
     return afilhados;
-}
+  }
 
 
 
-@Get(':userId/columns')
-async getUserColumns(@Param('userId', ParseIntPipe) userId: number) {
-  const columns = await this.usersService.getUserColumns(userId);
-  return columns;
-}
+  @Get(':userId/columns')
+  async getUserColumns(@Param('userId', ParseIntPipe) userId: number) {
+    const columns = await this.usersService.getUserColumns(userId);
+    return columns;
+  }
 
-@Get(':userId/columns-info')
-async getUserColumnsInfo(@Param('userId', ParseIntPipe) userId: number) {
-  const columnsInfo = await this.usersService.getUserColumnsInfo(userId);
-  return columnsInfo;
-}
+  @Get(':userId/columns-info')
+  async getUserColumnsInfo(@Param('userId', ParseIntPipe) userId: number) {
+    const columnsInfo = await this.usersService.getUserColumnsInfo(userId);
+    return columnsInfo;
+  }
 
 
-@Post(':userId/columns')
-async addColumnToUser(
-  @Param('userId', ParseIntPipe) userId: number,
-  @Body('columnId', ParseIntPipe) columnId: number
-) {
-  await this.usersService.addColumnToUser(userId, columnId);
-  return {
-    message: 'Coluna adicionada com sucesso ao usuário.',
-  };
-}
+  @Post(':userId/columns')
+  async addColumnToUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body('columnId', ParseIntPipe) columnId: number
+  ) {
+    await this.usersService.addColumnToUser(userId, columnId);
+    return {
+      message: 'Coluna adicionada com sucesso ao usuário.',
+    };
+  }
 
-@Delete(':userId/columns/:columnId')
-async removeColumnFromUser(
-  @Param('userId', ParseIntPipe) userId: number,
-  @Param('columnId', ParseIntPipe) columnId: number
-) {
-  await this.usersService.removeColumnFromUser(userId, columnId);
-  return {
-    message: 'Coluna removida com sucesso do usuário.',
-  };
-}
+  @Delete(':userId/columns/:columnId')
+  async removeColumnFromUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('columnId', ParseIntPipe) columnId: number
+  ) {
+    await this.usersService.removeColumnFromUser(userId, columnId);
+    return {
+      message: 'Coluna removida com sucesso do usuário.',
+    };
+  }
 
-  
+
 
 
 
@@ -113,7 +164,7 @@ async removeColumnFromUser(
       }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  
+
 
 
   @Get('find-by-email')
@@ -136,7 +187,7 @@ async removeColumnFromUser(
     }
   }
 
-  
+
 
 
   @Post('login')
@@ -156,17 +207,17 @@ async removeColumnFromUser(
     }
   }
 
-// src/users/users.controller.ts
-@Post('create')
-async create(@Body() body) {  
-  // Agora incluindo o avatar na extração do corpo da requisição
-  const { userEmail, username, password, email, address, city, state, cep, fone, avatar } = body;
+  // src/users/users.controller.ts
+  @Post('create')
+  async create(@Body() body) {
+    // Agora incluindo o avatar na extração do corpo da requisição
+    const { userEmail, username, password, email, address, city, state, cep, fone, avatar } = body;
 
-  console.log('### CREATE ### Controller - userEmail:', userEmail);
-  
-  // Passe todos os parâmetros, incluindo o avatar, para o serviço
-  return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar);
-}
+    console.log('### CREATE ### Controller - userEmail:', userEmail);
+
+    // Passe todos os parâmetros, incluindo o avatar, para o serviço
+    return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar);
+  }
 
 
 
