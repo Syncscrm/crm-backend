@@ -337,12 +337,13 @@ export class CardService {
     email: string,
     fone: string,
     state: string,
-    city: string
+    city: string,
+    pedido_number: string,
   ) {
-    const query = `INSERT INTO cards(name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city)
-                 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+    const query = `INSERT INTO cards(name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number)
+                 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
                  RETURNING *`;
-    const values = [name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city];
+    const values = [name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number];
     const result = await this.databaseService.query(query, values);
     return result[0];
   }
@@ -401,7 +402,7 @@ export class CardService {
   }
 
   async upsertEsquadria(esquadriaData) {
-    console.log('modulo esquadrias service');
+    //console.log('modulo esquadrias service');
     const upsertQuery = `
       INSERT INTO modulo_esquadrias (
         card_id, nome_obra, contato_obra, previsao_medicao, status_medicao,

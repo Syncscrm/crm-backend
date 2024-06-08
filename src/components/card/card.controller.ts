@@ -181,13 +181,13 @@ async getTotalUnreadMessagesCount(
     const {
       name, column_id, entity_id, empresa_id, document_number, cost_value,
       origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value,
-      potencial_venda, status, status_date, updated_at, email, fone, state, city
+      potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number
     } = body;
 
     return await this.cardService.importSuiteFlow(
       name, column_id, entity_id, empresa_id, document_number, cost_value,
       origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value,
-      potencial_venda, status, status_date, updated_at, email, fone, state, city
+      potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number
     );
   }
   
@@ -217,7 +217,7 @@ async getTotalUnreadMessagesCount(
 
   @Post('upsert')
   async upsertEsquadria(@Body() esquadriaData) {
-    console.log('modulo esquadrias controller')
+    //console.log('modulo esquadrias controller')
     return await this.cardService.upsertEsquadria(esquadriaData);
   }
 
