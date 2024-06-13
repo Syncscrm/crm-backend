@@ -17,6 +17,76 @@ export class UsersService {
 
 
 
+// ---------- excel -------------
+  async getCardsByEmpresaId(empresaId: number): Promise<any> {
+    const query = 'SELECT * FROM cards WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getUsersByEmpresaId(empresaId: number): Promise<any> {
+    const query = 'SELECT * FROM users WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getCardHistoryByEmpresaId(empresaId: number): Promise<any> {
+    const query = 'SELECT * FROM card_history WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getCardTasksByEmpresaId(empresaId: number): Promise<any> {
+    const query = 'SELECT * FROM card_tasks WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getModuloEsquadriasByEmpresaId(empresaId: number): Promise<any> {
+    const query = 'SELECT * FROM modulo_esquadrias WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   async getUserColumnPermissions(userId: number): Promise<{ columnId: number, canEdit: boolean }[]> {
     console.log('getUserColumnPermissions')

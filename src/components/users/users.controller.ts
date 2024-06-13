@@ -11,6 +11,50 @@ export class UsersController {
 
 
 
+  @Post('/cards')
+  async getCards(@Body('empresa_id') empresaId: number) {
+    return await this.usersService.getCardsByEmpresaId(empresaId);
+  }
+  
+  @Post('/users')
+  async getUsers(@Body('empresa_id') empresaId: number) {
+    return await this.usersService.getUsersByEmpresaId(empresaId);
+  }
+
+  @Post('/history')
+  async getCardHistory(@Body('empresa_id') empresaId: number) {
+    return await this.usersService.getCardHistoryByEmpresaId(empresaId);
+  }
+
+  @Post('/tasks')
+  async getCardTasks(@Body('empresa_id') empresaId: number) {
+    return await this.usersService.getCardTasksByEmpresaId(empresaId);
+  }
+
+  @Post('/modulo_esquadrias')
+  async getModuloEsquadrias(@Body('empresa_id') empresaId: number) {
+    return await this.usersService.getModuloEsquadriasByEmpresaId(empresaId);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

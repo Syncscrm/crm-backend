@@ -4,9 +4,223 @@ import { DatabaseService } from '../../database/database.service';
 
 import axios from 'axios';
 
+import { ref, deleteObject } from "firebase/storage";
+
+import { storage } from '../../config/firebase'
+
+
 @Injectable()
 export class CardService {
   constructor(private databaseService: DatabaseService) { }
+
+
+
+
+
+  /// ----------------- anexos
+
+
+  async getAnexosByCardId(cardId: number) {
+    const query = `
+      SELECT * FROM anexos
+      WHERE card_id = $1;
+    `;
+    const values = [cardId];
+    const result = await this.databaseService.query(query, values);
+    return result;  // Retorna todos os anexos do card
+  }
+
+  async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string) {
+    const query = `
+      INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+      RETURNING *;
+    `;
+    const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo];
+    const result = await this.databaseService.query(query, values);
+    console.log("Anexo adicionado:", result);
+    return result[0];  // Retorna o anexo adicionado
+  }
+
+  async deleteAnexo(anexoId: number) {
+    const query = `
+      DELETE FROM anexos
+      WHERE id = $1
+      RETURNING *;
+    `;
+    const values = [anexoId];
+    const result = await this.databaseService.query(query, values);
+    console.log("Resultado da exclusão do anexo:", result);
+    return result[0];  // Retorna o anexo excluído
+  }
+
+  async getAnexoByUrl(url: string) {
+    const query = `
+      SELECT * FROM anexos
+      WHERE url = $1;
+    `;
+    const values = [url];
+    const result = await this.databaseService.query(query, values);
+    console.log("Anexo encontrado:", result);
+    return result[0];  // Retorna o anexo encontrado
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  async deleteAllAnexosByCardId(cardId: number) {
+    const query = `
+      DELETE FROM anexos
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [cardId];
+    const result = await this.databaseService.query(query, values);
+
+    for (const anexo of result) {
+      const storageRef = ref(storage, `syncs/empresa-id-${anexo.empresa_id}/${anexo.nome_arquivo}`);
+      await deleteObject(storageRef);
+    }
+
+    return result;
+  }
+
+
+
+  // async deleteCard(cardId: number) {
+  //   await this.databaseService.query('BEGIN');
+  //   try {
+  //     await this.deleteCardHistory(cardId);
+  //     await this.deleteCardTasks(cardId);
+  //     await this.deleteCardShareds(cardId);
+  //     await this.deleteModuloEsquadrias(cardId);
+
+  //     const deleteQuery = `DELETE FROM cards WHERE card_id = $1 RETURNING *;`;
+  //     const result = await this.databaseService.query(deleteQuery, [cardId]);
+
+  //     if (result.length === 0) {
+  //       throw new Error('Nenhum card encontrado para o card_id fornecido.');
+  //     }
+
+  //     await this.databaseService.query('COMMIT');
+  //     return result; // Retorna o card excluído
+  //   } catch (error) {
+  //     await this.databaseService.query('ROLLBACK');
+  //     throw new Error('Erro ao excluir o card e seus registros relacionados: ' + error.message);
+  //   }
+  // }
+
+
+  async deleteCard(cardId: number) {
+    await this.databaseService.query('BEGIN');
+    try {
+      await this.deleteAllAnexosByCardId(cardId);
+      await this.deleteCardHistory(cardId);
+      await this.deleteCardTasks(cardId);
+      await this.deleteCardShareds(cardId);
+      await this.deleteModuloEsquadrias(cardId);
+
+      const deleteQuery = `DELETE FROM cards WHERE card_id = $1 RETURNING *;`;
+      const result = await this.databaseService.query(deleteQuery, [cardId]);
+      if (result.length === 0) {
+        throw new Error('Nenhum card encontrado para o card_id fornecido.');
+      }
+      await this.databaseService.query('COMMIT');
+      return result;
+    } catch (error) {
+      await this.databaseService.query('ROLLBACK');
+      throw new Error('Erro ao excluir o card e seus registros relacionados: ' + error.message);
+    }
+  }
+
+
+  // Método para excluir registros em card_history pelo card_id
+  async deleteCardHistory(cardId: number) {
+    const deleteQuery = `DELETE FROM card_history WHERE card_id = $1 RETURNING *;`;
+    const result = await this.databaseService.query(deleteQuery, [cardId]);
+    // if (result.length === 0) {
+    //   throw new Error('Nenhum histórico encontrado para o card_id fornecido.');
+    // }
+    return result; // Retorna os registros excluídos
+  }
+
+  // Método para excluir registros em card_tasks pelo card_id
+  async deleteCardTasks(cardId: number) {
+    const deleteQuery = `DELETE FROM card_tasks WHERE card_id = $1 RETURNING *;`;
+    const result = await this.databaseService.query(deleteQuery, [cardId]);
+    // if (result.length === 0) {
+    //   throw new Error('Nenhuma tarefa encontrada para o card_id fornecido.');
+    // }
+    return result; // Retorna os registros excluídos
+  }
+
+  // Método para excluir registros em card_shareds pelo card_id
+  async deleteCardShareds(cardId: number) {
+    const deleteQuery = `DELETE FROM card_shareds WHERE card_id = $1 RETURNING *;`;
+    const result = await this.databaseService.query(deleteQuery, [cardId]);
+    // if (result.length === 0) {
+    //   throw new Error('Nenhum compartilhamento encontrado para o card_id fornecido.');
+    // }
+    return result; // Retorna os registros excluídos
+  }
+
+  // Método para excluir registros em modulo_esquadrias pelo card_id
+  async deleteModuloEsquadrias(cardId: number) {
+    const deleteQuery = `DELETE FROM modulo_esquadrias WHERE card_id = $1 RETURNING *;`;
+    const result = await this.databaseService.query(deleteQuery, [cardId]);
+    // if (result.length === 0) {
+    //   throw new Error('Nenhum módulo de esquadrias encontrado para o card_id fornecido.');
+    // }
+    return result; // Retorna os registros excluídos
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -98,18 +312,18 @@ export class CardService {
 
   async findSoldLastMinute(empresa_id: number) {
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
-  
+
     const query = `
       SELECT card_id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date
       FROM cards
       WHERE status = 'Vendido' AND status_date >= $1
       AND empresa_id = $2;
     `;
-  
+
     const values = [oneMinuteAgo, empresa_id];
     return await this.databaseService.query(query, values);
   }
-  
+
 
   async bucarCor(empresa_id: number) {
     const query = `
@@ -246,14 +460,39 @@ export class CardService {
 
 
 
+  // async findCardsPCP(entity_id: number, empresa_id: number) {
+  //   const query = `
+  //     -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados
+  //     WITH CombinedCards AS (
+  //       SELECT c.*, me.*
+  //       FROM cards c
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE c.entity_id = $1 AND c.empresa_id = $2
+
+  //       UNION
+
+  //       SELECT c.*, me.*
+  //       FROM cards c
+  //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE ua.user_id = $1 AND c.empresa_id = $2
+  //     )
+  //     SELECT * FROM CombinedCards;
+  //   `;
+
+  //   const values = [entity_id, empresa_id];
+  //   return await this.databaseService.query(query, values);
+  // }
+
+
   async findCardsPCP(entity_id: number, empresa_id: number) {
     const query = `
-      -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados
+      -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados, filtrando por status 'Vendido'
       WITH CombinedCards AS (
         SELECT c.*, me.*
         FROM cards c
         LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-        WHERE c.entity_id = $1 AND c.empresa_id = $2
+        WHERE c.entity_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
   
         UNION
   
@@ -261,7 +500,7 @@ export class CardService {
         FROM cards c
         INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
         LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-        WHERE ua.user_id = $1 AND c.empresa_id = $2
+        WHERE ua.user_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
       )
       SELECT * FROM CombinedCards;
     `;
@@ -269,6 +508,7 @@ export class CardService {
     const values = [entity_id, empresa_id];
     return await this.databaseService.query(query, values);
   }
+
 
 
 
@@ -291,18 +531,18 @@ export class CardService {
 
 
 
-  async addCardHistoryImportSuiteFlow(card_id: number, user_id: number, action_type: string, description: string, card_status: string, create_at: string) {
+  async addCardHistoryImportSuiteFlow(card_id: number, user_id: number, action_type: string, description: string, card_status: string, create_at: string, empresa_id: number) {
     try {
       // Inicia uma transação
       await this.databaseService.query('BEGIN');
 
       // Insere o registro no histórico
       const insertHistoryQuery = `
-      INSERT INTO card_history(card_id, user_id, action_type, description, card_status, create_at)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO card_history(card_id, user_id, action_type, description, card_status, create_at, empresa_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
     `;
-      const historyValues = [card_id, user_id, action_type, description, card_status, create_at];
+      const historyValues = [card_id, user_id, action_type, description, card_status, create_at, empresa_id];
       const historyResult = await this.databaseService.query(insertHistoryQuery, historyValues);
 
       // Finaliza a transação com sucesso
@@ -319,6 +559,7 @@ export class CardService {
 
 
   async importSuiteFlow(
+    created_at: string,
     name: string,
     column_id: number,
     entity_id: number,
@@ -339,11 +580,13 @@ export class CardService {
     state: string,
     city: string,
     pedido_number: string,
+    etapa_producao: number,
+    etiqueta_id: number,
   ) {
-    const query = `INSERT INTO cards(name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number)
-                 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+    const query = `INSERT INTO cards(created_at, name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number, etapa_producao, etiqueta_id)
+                 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
                  RETURNING *`;
-    const values = [name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number];
+    const values = [created_at, name, column_id, entity_id, empresa_id, document_number, cost_value, origem, produto, motivo_venda_perdida, nivel_prioridade, sale_value, potencial_venda, status, status_date, updated_at, email, fone, state, city, pedido_number, etapa_producao, etiqueta_id];
     const result = await this.databaseService.query(query, values);
     return result[0];
   }
@@ -410,9 +653,9 @@ export class CardService {
         previsao_vistoria_pre, status_vistoria_pre, previsao_entrega_obra, status_entrega_obra,
         previsao_instalacao, status_instalacao, previsao_vistoria_pos, status_vistoria_pos,
         previsao_assistencia, status_assistencia, horas_producao, quantidade_esquadrias,
-        quantidade_quadros, metros_quadrados, cor, obs
+        quantidade_quadros, metros_quadrados, cor, obs, empresa_id, prazo_entrega, status_prazo_entrega
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
       )
       ON CONFLICT (card_id) DO UPDATE SET
         nome_obra = EXCLUDED.nome_obra,
@@ -438,7 +681,10 @@ export class CardService {
         quantidade_quadros = EXCLUDED.quantidade_quadros,
         metros_quadrados = EXCLUDED.metros_quadrados,
         cor = EXCLUDED.cor,
-        obs = EXCLUDED.obs
+        obs = EXCLUDED.obs,
+        empresa_id = EXCLUDED.empresa_id,
+        prazo_entrega = EXCLUDED.prazo_entrega, 
+        status_prazo_entrega = EXCLUDED.status_prazo_entrega
       RETURNING *;
     `;
     const values = [
@@ -447,11 +693,12 @@ export class CardService {
       esquadriaData.previsao_vistoria_pre, esquadriaData.status_vistoria_pre, esquadriaData.previsao_entrega_obra, esquadriaData.status_entrega_obra,
       esquadriaData.previsao_instalacao, esquadriaData.status_instalacao, esquadriaData.previsao_vistoria_pos, esquadriaData.status_vistoria_pos,
       esquadriaData.previsao_assistencia, esquadriaData.status_assistencia, esquadriaData.horas_producao, esquadriaData.quantidade_esquadrias,
-      esquadriaData.quantidade_quadros, esquadriaData.metros_quadrados, esquadriaData.cor, esquadriaData.obs
+      esquadriaData.quantidade_quadros, esquadriaData.metros_quadrados, esquadriaData.cor, esquadriaData.obs, esquadriaData.empresa_id,
+      esquadriaData.prazo_entrega, esquadriaData.status_prazo_entrega
     ];
     return await this.databaseService.query(upsertQuery, values);
   }
-  
+
 
   async updateCardStatus(id: number, status: string, columnId: number | null) {
     const query = `
@@ -608,7 +855,7 @@ export class CardService {
 
 
   // card.service.ts
-  async addCardSharing(card_id: number, owner_user_id: number, email: string) {
+  async addCardSharing(card_id: number, owner_user_id: number, email: string, empresa_id: number) {
     // Primeiro, buscar o username do proprietário (owner) do card pelo owner_user_id
     const ownerQuery = `SELECT username FROM users WHERE id = $1`;
     const ownerResult = await this.databaseService.query(ownerQuery, [owner_user_id]);
@@ -628,11 +875,11 @@ export class CardService {
 
     // Agora, inserir o compartilhamento na tabela 'card_shareds'
     const insertQuery = `
-    INSERT INTO card_shareds (card_id, owner_user_id, owner_username, shared_user_id, shared_username, email)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO card_shareds (card_id, owner_user_id, owner_username, shared_user_id, shared_username, email, empresa_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *;
   `;
-    const insertValues = [card_id, owner_user_id, owner_username, shared_user_id, shared_username, email];
+    const insertValues = [card_id, owner_user_id, owner_username, shared_user_id, shared_username, email, empresa_id];
 
     try {
       const insertResult = await this.databaseService.query(insertQuery, insertValues);
@@ -697,8 +944,8 @@ export class CardService {
     try {
       // Primeiro, adiciona a nova tarefa
       const insertTaskQuery = `
-        INSERT INTO card_tasks (user_id, card_id, task_type, description, due_date, completed)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO card_tasks (user_id, card_id, task_type, description, due_date, completed, empresa_id )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *;  -- Retorna a tarefa recém-criada
       `;
       const taskValues = [
@@ -707,7 +954,8 @@ export class CardService {
         tarefaData.task_type,
         tarefaData.description,
         tarefaData.due_date,
-        tarefaData.completed
+        tarefaData.completed,
+        tarefaData.empresa_id
       ];
       const taskResult = await this.databaseService.query(insertTaskQuery, taskValues);
 
@@ -762,18 +1010,18 @@ export class CardService {
   }
 
 
-  async addCardHistory(card_id: number, user_id: number, action_type: string, description: string, card_status: string) {
+  async addCardHistory(card_id: number, user_id: number, action_type: string, description: string, card_status: string, empresa_id: number) {
     try {
       // Inicia uma transação
       await this.databaseService.query('BEGIN');
 
       // Insere o registro no histórico
       const insertHistoryQuery = `
-        INSERT INTO card_history(card_id, user_id, action_type, description, card_status)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO card_history(card_id, user_id, action_type, description, card_status, empresa_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *;
       `;
-      const historyValues = [card_id, user_id, action_type, description, card_status];
+      const historyValues = [card_id, user_id, action_type, description, card_status, empresa_id];
       const historyResult = await this.databaseService.query(insertHistoryQuery, historyValues);
 
       // Atualiza o updated_at do card correspondente
@@ -950,7 +1198,7 @@ export class CardService {
   //   // Consulta para obter o status atual do banco de dados
   //   const statusCheckQuery = 'SELECT status FROM cards WHERE card_id = $1';
   //   const statusCheckResult = await this.databaseService.query(statusCheckQuery, [id]);
-  
+
   //   if (statusCheckResult[0].status == status) {
   //     const query = `
   //       UPDATE cards
@@ -1049,13 +1297,13 @@ export class CardService {
     second_document_number: string,
     pedido_number: string,
     etiqueta_id: number
-) {
+  ) {
     // Consulta para obter o status atual do banco de dados
     const statusCheckQuery = 'SELECT status FROM cards WHERE card_id = $1';
     const statusCheckResult = await this.databaseService.query(statusCheckQuery, [id]);
 
     if (statusCheckResult[0].status == status) {
-        const query = `
+      const query = `
             UPDATE cards
             SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
                 document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP,
@@ -1063,11 +1311,11 @@ export class CardService {
             WHERE card_id = $1
             RETURNING *
         `;
-        const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
-        const result = await this.databaseService.query(query, values);
-        return result;
+      const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
+      const result = await this.databaseService.query(query, values);
+      return result;
     } else {
-        const query = `
+      const query = `
             UPDATE cards
             SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
                 document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP,
@@ -1075,16 +1323,16 @@ export class CardService {
             WHERE card_id = $1
             RETURNING *
         `;
-        const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
-        const result = await this.databaseService.query(query, values);
-        return result;
+      const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
+      const result = await this.databaseService.query(query, values);
+      return result;
     }
-}
+  }
 
 
 
-  
-  
+
+
 
 
 }
