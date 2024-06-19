@@ -16,8 +16,179 @@ export class UsersService {
 
 
 
+  async getCores(empresaId: number): Promise<any> {
+    const query = 'SELECT * FROM cores WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
 
-// ---------- excel -------------
+
+  async createCor(name: string, empresa_id: number, descricao: string) {
+    const query = 'INSERT INTO cores(name, empresa_id, descricao) VALUES($1, $2, $3) RETURNING *';
+    const values = [name, empresa_id, descricao];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+  
+  async updateCor(id: number, name: string) {
+    const query = 'UPDATE cores SET name = $1 WHERE id = $2 RETURNING *';
+    const values = [name, id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+  
+  async deleteCor(id: number) {
+    const query = 'DELETE FROM cores WHERE id = $1';
+    const result = await this.databaseService.query(query, [id]);
+    return result;
+  }
+  
+
+
+  // --------------- create ------------
+
+  async createEtiqueta(
+    description: string,
+    color: string,
+    empresa_id: number,
+    order: number,
+  ) {
+    const query = 'INSERT INTO etiquetas(description, color, empresa_id, "order") VALUES($1, $2, $3, $4) RETURNING *';
+    const values = [description, color, empresa_id, order];
+    const result = await this.databaseService.query(query, values);
+    return result[0]; 
+  }
+
+  async createOrigem(name: string, empresa_id: number, descricao: string) {
+    const query = 'INSERT INTO origens(name, empresa_id, descricao) VALUES($1, $2, $3) RETURNING *';
+    const values = [name, empresa_id, descricao];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+  
+  async createColuna(name: string, empresa_id: number, display_order: number, description: string) {
+    const query = 'INSERT INTO process_columns(name, empresa_id, display_order, description) VALUES($1, $2, $3, $4) RETURNING *';
+    const values = [name, empresa_id, display_order, description];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+  
+  async createProduto(name: string, empresa_id: number, descricao: string) {
+    const query = 'INSERT INTO produtos(name, empresa_id, descricao) VALUES($1, $2, $3) RETURNING *';
+    const values = [name, empresa_id, descricao];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+
+  // -------------- delete ----------------
+  async deleteEtiqueta(id: number) {
+    const query = 'DELETE FROM etiquetas WHERE id = $1';
+    const result = await this.databaseService.query(query, [id]);
+    return result;
+  }
+
+  async deleteOrigem(id: number) {
+    const query = 'DELETE FROM origens WHERE id = $1';
+    const result = await this.databaseService.query(query, [id]);
+    return result;
+  }
+
+  async deleteColuna(id: number) {
+    const query = 'DELETE FROM process_columns WHERE id = $1';
+    const result = await this.databaseService.query(query, [id]);
+    return result;
+  }
+
+  async deleteProduto(id: number) {
+    const query = 'DELETE FROM produtos WHERE id = $1';
+    const result = await this.databaseService.query(query, [id]);
+    return result;
+  }
+
+  //-------------- update ------------------
+
+  async updateEtiqueta(id: number, description: string) {
+    const query = 'UPDATE etiquetas SET description = $1 WHERE id = $2 RETURNING *';
+    const values = [description, id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  async updateOrigem(id: number, name: string) {
+    const query = 'UPDATE origens SET name = $1 WHERE id = $2 RETURNING *';
+    const values = [name, id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  async updateColuna(id: number, name: string) {
+    const query = 'UPDATE process_columns SET name = $1 WHERE id = $2 RETURNING *';
+    const values = [name, id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  async updateProduto(id: number, name: string) {
+    const query = 'UPDATE produtos SET name = $1 WHERE id = $2 RETURNING *';
+    const values = [name, id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  // ---------- parameters - get  -------------
+  async getEtiquetas(empresaId: number): Promise<any> {
+    console.log('service getEtiquetas')
+
+    const query = 'SELECT * FROM etiquetas WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getOrigens(empresaId: number): Promise<any> {
+    console.log('service getOrigens')
+
+    const query = 'SELECT * FROM origens WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getColumns(empresaId: number): Promise<any> {
+    console.log('service getColumns')
+
+    const query = 'SELECT * FROM process_columns WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+  async getProdutos(empresaId: number): Promise<any> {
+    console.log('service getProdutos')
+
+    const query = 'SELECT * FROM produtos WHERE empresa_id = $1';
+    return this.databaseService.query(query, [empresaId]);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // ---------- excel -------------
   async getCardsByEmpresaId(empresaId: number): Promise<any> {
     const query = 'SELECT * FROM cards WHERE empresa_id = $1';
     return this.databaseService.query(query, [empresaId]);
@@ -175,6 +346,35 @@ export class UsersService {
     return result;
   }
 
+
+
+
+
+
+
+
+
+
+
+  // Método para contar usuários por empresa_id
+  async countUsersByEmpresaId(empresaId: number): Promise<number> {
+    const query = 'SELECT COUNT(*) FROM users WHERE empresa_id = $1';
+    const result = await this.databaseService.query(query, [empresaId]);
+
+    console.log('Numero de usuários atual: ', parseInt(result[0].count, 10))
+    return parseInt(result[0].count, 10);
+  }
+
+  // Método para obter o número de licenças de uma empresa
+  async getNumeroDeLicencas(empresaId: number): Promise<number> {
+    const query = 'SELECT numero_de_licencas FROM empresas WHERE id = $1';
+    const result = await this.databaseService.query(query, [empresaId]);
+    console.log('Numero de licenças contratadas: ', result[0].numero_de_licencas)
+
+
+    return result[0].numero_de_licencas;
+  }
+
   async create(
     userEmail: string, // E-mail do usuário administrador fazendo a requisição
     username: string,
@@ -193,6 +393,14 @@ export class UsersService {
       throw new Error('Usuário administrador não encontrado.');
     }
     const empresa_id = adminUserInfo.empresa_id; // Certifique-se de que esta coluna exista e esteja corretamente relacionada
+
+    // Verificar se o número de usuários não excede o número de licenças
+    const userCount = await this.countUsersByEmpresaId(empresa_id);
+    const numeroDeLicencas = await this.getNumeroDeLicencas(empresa_id);
+
+    if (userCount >= numeroDeLicencas) {
+      throw new Error('Número de licenças excedido. Não é possível criar novos usuários.');
+    }
 
     // Agora, proceda com a criação do novo usuário, incluindo o empresa_id
     const saltOrRounds = 10;
@@ -229,6 +437,10 @@ export class UsersService {
     const user = await this.findByEmail(email);
     if (!user) {
       throw new Error('Usuário não encontrado');
+    }
+
+    if (!user.is_active) {
+      throw new Error('Usuário inativo');
     }
 
     // Verificar a senha com bcrypt

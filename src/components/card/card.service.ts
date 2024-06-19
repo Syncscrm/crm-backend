@@ -55,6 +55,7 @@ export class CardService {
   }
 
   async getAnexoByUrl(url: string) {
+    console.log(`Buscando anexo pelo URL: ${url}`);
     const query = `
       SELECT * FROM anexos
       WHERE url = $1;
@@ -65,6 +66,18 @@ export class CardService {
     return result[0];  // Retorna o anexo encontrado
   }
 
+  async getAnexoById(id: number) {
+    console.log(`Buscando anexo pelo ID: ${id}`);
+    const query = `
+      SELECT * FROM anexos
+      WHERE id = $1;
+    `;
+    const values = [id];
+    const result = await this.databaseService.query(query, values);
+    console.log("Anexo encontrado:", result);
+    return result[0];  // Retorna o anexo encontrado
+  }
+  
 
 
 
@@ -100,11 +113,6 @@ export class CardService {
     `;
     const values = [cardId];
     const result = await this.databaseService.query(query, values);
-
-    for (const anexo of result) {
-      const storageRef = ref(storage, `syncs/empresa-id-${anexo.empresa_id}/${anexo.nome_arquivo}`);
-      await deleteObject(storageRef);
-    }
 
     return result;
   }

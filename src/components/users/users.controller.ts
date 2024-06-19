@@ -9,13 +9,168 @@ export class UsersController {
 
 
 
+  @Get('getCores/:empresaId')
+  async buscarCores(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    return await this.usersService.getCores(empresaId);
+  }
+  
+
+  @Post('createCor')
+async createCor(@Body() body) {
+  const { name, empresa_id, descricao } = body;
+  return await this.usersService.createCor(name, empresa_id, descricao);
+}
+
+@Put('updateCor/:id')
+async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
+  const { name } = body;
+  return await this.usersService.updateCor(id, name);
+}
+
+@Delete('deleteCor/:id')
+async deleteCor(@Param('id', ParseIntPipe) id: number) {
+  return await this.usersService.deleteCor(id);
+}
+
+
+
+  // ----------- create ------------
+
+
+
+  @Post('createEtiqueta')
+  async createEtiqueta(@Body() body) {
+    const { description, color, empresa_id, order } = body;
+    return await this.usersService.createEtiqueta(description, color, empresa_id, order);
+  }
+
+  @Post('createOrigem')
+async createOrigem(@Body() body) {
+  const { name, empresa_id, descricao } = body;
+  return await this.usersService.createOrigem(name, empresa_id, descricao);
+}
+
+@Post('createColuna')
+async createColuna(@Body() body) {
+  const { name, empresa_id, display_order, description } = body;
+  return await this.usersService.createColuna(name, empresa_id, display_order, description);
+}
+
+@Post('createProduto')
+async createProduto(@Body() body) {
+  const { name, empresa_id, descricao } = body;
+  return await this.usersService.createProduto(name, empresa_id, descricao);
+}
+
+  // ----------- delete -----------
+  @Delete('deleteEtiqueta/:id')
+  async deleteEtiqueta(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.deleteEtiqueta(id);
+  }
+
+  @Delete('deleteOrigem/:id')
+  async deleteOrigem(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.deleteOrigem(id);
+  }
+
+  @Delete('deleteColuna/:id')
+  async deleteColuna(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.deleteColuna(id);
+  }
+
+  @Delete('deleteProduto/:id')
+  async deleteProduto(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.deleteProduto(id);
+  }
+
+  //------------- update -----------
+
+  @Put('updateEtiqueta/:id')
+  async updateEtiqueta(@Param('id', ParseIntPipe) id: number, @Body() body) {
+    const { description } = body;
+    return await this.usersService.updateEtiqueta(id, description);
+  }
+
+  @Put('updateOrigem/:id')
+  async updateOrigem(@Param('id', ParseIntPipe) id: number, @Body() body) {
+    const { name } = body;
+    return await this.usersService.updateOrigem(id, name);
+  }
+
+  @Put('updateColuna/:id')
+  async updateColuna(@Param('id', ParseIntPipe) id: number, @Body() body) {
+    const { name } = body;
+    return await this.usersService.updateColuna(id, name);
+  }
+
+  @Put('updateProduto/:id')
+  async updateProduto(@Param('id', ParseIntPipe) id: number, @Body() body) {
+    const { name } = body;
+    return await this.usersService.updateProduto(id, name);
+  }
+
+  //------------- get --------------
+  @Get('getEtiquetas/:empresaId')
+  async buscarEtiquetas(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    console.log('controller getEtiquetas')
+    return await this.usersService.getEtiquetas(empresaId);
+  }
+
+  @Get('getOrigens/:empresaId')
+  async buscarOrigens(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    console.log('controller getOrigens')
+    return await this.usersService.getOrigens(empresaId);
+  }
+
+  @Get('getColumns/:empresaId')
+  async buscarColumns(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    console.log('controller getColumns')
+    return await this.usersService.getColumns(empresaId);
+  }
+
+  @Get('getProdutos/:empresaId')
+  async buscarProdutos(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+  ) {
+    console.log('controller getProdutos')
+    return await this.usersService.getProdutos(empresaId);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   @Post('/cards')
   async getCards(@Body('empresa_id') empresaId: number) {
     return await this.usersService.getCardsByEmpresaId(empresaId);
   }
-  
+
   @Post('/users')
   async getUsers(@Body('empresa_id') empresaId: number) {
     return await this.usersService.getUsersByEmpresaId(empresaId);

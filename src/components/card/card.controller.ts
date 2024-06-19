@@ -35,6 +35,16 @@ export class CardController {
   }
 
 
+  @Get('buscar-por-id')
+async getAnexoById(@Query('id') id: number) {
+  const anexo = await this.cardService.getAnexoById(id);
+  console.log("Anexo encontrado:", anexo);
+  return anexo;
+}
+
+
+
+
 
 
 
