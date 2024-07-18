@@ -6,6 +6,87 @@ import { CardService } from './card.service';
 export class CardController {
   constructor(private readonly cardService: CardService) { }
 
+
+
+
+
+
+  // @Get('search')
+  // async searchCards(
+  //   @Query() query: any,
+  //   @Query('entityId', ParseIntPipe) entityId: number,
+  //   @Query('empresaId', ParseIntPipe) empresaId: number
+  // ) {
+  //   const { name, state, document_number, origem, produto, pedido_number } = query;
+
+  //   return await this.cardService.searchCards({
+  //     name,
+  //     state,
+  //     document_number,
+  //     origem,
+  //     produto,
+  //     pedido_number,
+  //     entityId,
+  //     empresaId
+  //   });
+  // }
+
+  @Get('search')
+async searchCards(
+  @Query() query: any,
+  @Query('entityId', ParseIntPipe) entityId: number,
+  @Query('empresaId', ParseIntPipe) empresaId: number
+) {
+  const { searchType, searchTerm } = query;
+  
+  console.log('searchType:', searchType);  // Adicione este log
+  console.log('searchTerm:', searchTerm);  // Adicione este log
+
+  return await this.cardService.searchCards({
+    searchType,
+    searchTerm,
+    entityId,
+    empresaId
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @Get('find-by-id/:cardId')
+  async getCardById(@Param('cardId', ParseIntPipe) cardId: number) {
+    return await this.cardService.findCardById(cardId);
+  }
+
+
+
+
+
+  @Get('tasks/date/:date/:userId')
+  async getTasksByDate(
+    @Param('date') date: string,
+    @Param('userId') userId: number,
+  ) {
+    return await this.cardService.getTasksByDate(date, userId);
+  }
+
+
+
   @Get(':cardId/anexos')
   async getAnexosByCardId(@Param('cardId', ParseIntPipe) cardId: number) {
     const anexos = await this.cardService.getAnexosByCardId(cardId);
@@ -13,12 +94,19 @@ export class CardController {
     return anexos;
   }
 
+  // @Post(':cardId/add-anexo')
+  // async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
+  //   const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo } = body;
+  //   console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo });
+  //   return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo);
+  // }
   @Post(':cardId/add-anexo')
-  async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
-    const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo } = body;
-    console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo });
-    return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo);
-  }
+async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
+  const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor } = body;
+  console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor });
+  return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor);
+}
+
 
   @Delete(':anexoId/delete-anexo')
   async deleteAnexo(@Param('anexoId', ParseIntPipe) anexoId: number) {
@@ -36,11 +124,11 @@ export class CardController {
 
 
   @Get('buscar-por-id')
-async getAnexoById(@Query('id') id: number) {
-  const anexo = await this.cardService.getAnexoById(id);
-  console.log("Anexo encontrado:", anexo);
-  return anexo;
-}
+  async getAnexoById(@Query('id') id: number) {
+    const anexo = await this.cardService.getAnexoById(id);
+    console.log("Anexo encontrado:", anexo);
+    return anexo;
+  }
 
 
 
@@ -132,13 +220,23 @@ async getAnexoById(@Query('id') id: number) {
 
 
 
-  @Post('/enviar')
-  async enviarMensagem(@Body() body: { numero: string; contato: string; mensagem: string }): Promise<string> {
-    const { numero, contato, mensagem } = body;
+  // @Post('/enviar')
+  // async enviarMensagem(@Body() body: { numero: string; contato: string; mensagem: string }): Promise<string> {
+  //   const { numero, contato, mensagem } = body;
 
-    console.log('controller', numero, contato, mensagem)
-    await this.cardService.enviarMensagemParaBotConversa(numero, contato, mensagem);
-    return 'Mensagem enviada com sucesso!';
+  //   console.log('controller', numero, contato, mensagem)
+  //   await this.cardService.enviarMensagemParaBotConversa(numero, contato, mensagem);
+  //   return 'Mensagem enviada com sucesso!';
+  // }
+
+  @Post('enviarMensagemParaBotConversa')
+  async enviarMensagemParaBotConversa(
+    @Query('empresaId') empresaId: number,
+    @Query('numero') numero: string,
+    @Query('contato') contato: string,
+    @Query('mensagem') mensagem: string,
+  ): Promise<void> {
+    await this.cardService.enviarMensagemParaBotConversa(empresaId, numero, contato, mensagem);
   }
 
 

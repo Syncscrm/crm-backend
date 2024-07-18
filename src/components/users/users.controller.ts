@@ -8,6 +8,175 @@ export class UsersController {
 
 
 
+  @Put(':userId/change-password')
+  async changeUserPassword(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() body: { password: string }
+  ) {
+    return await this.usersService.changeUserPassword(userId, body.password);
+  }
+
+
+
+
+  @Get('getRecursos/:empresaId')
+  async getRecursosByEmpresaId(@Param('empresaId', ParseIntPipe) empresaId: number) {
+    return await this.usersService.getRecursosByEmpresaId(empresaId);
+  }
+
+
+
+  @Post('create-user-and-company')
+  async createUserAndCompany(@Body() body) {
+    const {
+      username,
+      password,
+      email,
+      fone,
+      segment
+    } = body;
+    return await this.usersService.createUserAndCompany(
+      username,
+      password,
+      email,
+      fone,
+      segment
+    );
+  }
+
+
+
+
+
+
+
+
+
+
+  // ---------- modulo pedidos -------------------
+
+
+
+  @Get('pedido/:cardId')
+  async findPedidoByCardId(@Param('cardId', ParseIntPipe) cardId: number) {
+
+    console.log('pedido/:cardId')
+    return await this.usersService.findPedidoByCardId(cardId);
+  }
+
+  @Post('upsert-pedido')
+  async upsertPedido(@Body() pedidoData: any) {
+    console.log('upsert-pedid')
+    return await this.usersService.upsertPedido(pedidoData);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // @Get('conversation')
+  // async getEmailConversation(@Query('email') email: string) {
+  //   return this.usersService.getEmails(email);
+  // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @Get(':userId/tasks')
+  async getUserTasks(@Param('userId', ParseIntPipe) userId: number) {
+    return await this.usersService.getUserTasks(userId);
+  }
+
+
+
+
+
+
+
+
+  @Put('updateColunaVendido/:empresaId')
+  async updateColunaVendido(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() body: { coluna_vendido: string }
+  ) {
+    return await this.usersService.updateColunaVendido(empresaId, body.coluna_vendido);
+  }
+
+  @Put('updateColunaPerdido/:empresaId')
+  async updateColunaPerdido(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() body: { coluna_perdido: string }
+  ) {
+    return await this.usersService.updateColunaPerdido(empresaId, body.coluna_perdido);
+  }
+
+  @Put('updateColunaArquivado/:empresaId')
+  async updateColunaArquivado(
+    @Param('empresaId', ParseIntPipe) empresaId: number,
+    @Body() body: { coluna_arquivado: string }
+  ) {
+    return await this.usersService.updateColunaArquivado(empresaId, body.coluna_arquivado);
+  }
+
+
+
+  @Get('getEmpresa/:empresaId')
+  async buscarEmpresa(@Param('empresaId', ParseIntPipe) empresaId: number) {
+    return await this.usersService.buscarEmpresa(empresaId);
+  }
 
   @Get('getCores/:empresaId')
   async buscarCores(
@@ -15,24 +184,24 @@ export class UsersController {
   ) {
     return await this.usersService.getCores(empresaId);
   }
-  
+
 
   @Post('createCor')
-async createCor(@Body() body) {
-  const { name, empresa_id, descricao } = body;
-  return await this.usersService.createCor(name, empresa_id, descricao);
-}
+  async createCor(@Body() body) {
+    const { name, empresa_id, descricao } = body;
+    return await this.usersService.createCor(name, empresa_id, descricao);
+  }
 
-@Put('updateCor/:id')
-async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
-  const { name } = body;
-  return await this.usersService.updateCor(id, name);
-}
+  @Put('updateCor/:id')
+  async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
+    const { name } = body;
+    return await this.usersService.updateCor(id, name);
+  }
 
-@Delete('deleteCor/:id')
-async deleteCor(@Param('id', ParseIntPipe) id: number) {
-  return await this.usersService.deleteCor(id);
-}
+  @Delete('deleteCor/:id')
+  async deleteCor(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.deleteCor(id);
+  }
 
 
 
@@ -47,22 +216,22 @@ async deleteCor(@Param('id', ParseIntPipe) id: number) {
   }
 
   @Post('createOrigem')
-async createOrigem(@Body() body) {
-  const { name, empresa_id, descricao } = body;
-  return await this.usersService.createOrigem(name, empresa_id, descricao);
-}
+  async createOrigem(@Body() body) {
+    const { name, empresa_id, descricao } = body;
+    return await this.usersService.createOrigem(name, empresa_id, descricao);
+  }
 
-@Post('createColuna')
-async createColuna(@Body() body) {
-  const { name, empresa_id, display_order, description } = body;
-  return await this.usersService.createColuna(name, empresa_id, display_order, description);
-}
+  @Post('createColuna')
+  async createColuna(@Body() body) {
+    const { name, empresa_id, display_order, description } = body;
+    return await this.usersService.createColuna(name, empresa_id, display_order, description);
+  }
 
-@Post('createProduto')
-async createProduto(@Body() body) {
-  const { name, empresa_id, descricao } = body;
-  return await this.usersService.createProduto(name, empresa_id, descricao);
-}
+  @Post('createProduto')
+  async createProduto(@Body() body) {
+    const { name, empresa_id, descricao } = body;
+    return await this.usersService.createProduto(name, empresa_id, descricao);
+  }
 
   // ----------- delete -----------
   @Delete('deleteEtiqueta/:id')
@@ -323,33 +492,88 @@ async createProduto(@Body() body) {
 
 
 
+  // @Put(':userId')
+  // async updateUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Body() body: {
+  //     username?: string,
+  //     fone?: string,
+  //     avatar?: string,
+  //     is_active?: boolean,
+  //     meta_user?: number,
+  //     meta_grupo?: number,
+  //     entidade?: string,
+  //     access_level?: number,
+  //   }
+  // ) {
+  //   try {
+  //     const updatedUser = await this.usersService.updateUser(userId, body);
+  //     return {
+  //       message: 'Usuário atualizado com sucesso',
+  //       user: updatedUser,
+  //     };
+  //   } catch (error) {
+  //     throw new HttpException({
+  //       status: HttpStatus.BAD_REQUEST,
+  //       error: 'Erro ao atualizar o usuário. ' + error.message,
+  //     }, HttpStatus.BAD_REQUEST);
+  //   }
+  // }
+
+
+ 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   @Put(':userId')
-  async updateUser(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Body() body: {
-      username?: string,
-      fone?: string,
-      avatar?: string,
-      is_active?: boolean,
-      meta_user?: number,
-      meta_grupo?: number,
-      entidade?: string,
-      access_level?: number,
-    }
-  ) {
-    try {
-      const updatedUser = await this.usersService.updateUser(userId, body);
-      return {
-        message: 'Usuário atualizado com sucesso',
-        user: updatedUser,
-      };
-    } catch (error) {
-      throw new HttpException({
-        status: HttpStatus.BAD_REQUEST,
-        error: 'Erro ao atualizar o usuário. ' + error.message,
-      }, HttpStatus.BAD_REQUEST);
-    }
+async updateUser(
+  @Param('userId', ParseIntPipe) userId: number,
+  @Body() body: {
+    username?: string,
+    fone?: string,
+    avatar?: string,
+    is_active?: boolean,
+    meta_user?: number,
+    meta_grupo?: number,
+    entidade?: string,
+    access_level?: number,
+    address?: string,
+    city?: string,
+    state?: string,
+    cep?: string,
+    user_type?: string // Adicionando o campo user_type
   }
+) {
+  try {
+    const updatedUser = await this.usersService.updateUser(userId, body);
+    return {
+      message: 'Usuário atualizado com sucesso',
+      user: updatedUser,
+    };
+  } catch (error) {
+    throw new HttpException({
+      status: HttpStatus.BAD_REQUEST,
+      error: 'Erro ao atualizar o usuário. ' + error.message,
+    }, HttpStatus.BAD_REQUEST);
+  }
+}
+
+
+
+
 
   @Get('list-by-company')
   async listByCompany(@Query('empresa_id', ParseIntPipe) empresaId: number) {

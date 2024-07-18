@@ -15,6 +15,212 @@ export class CardService {
 
 
 
+  // async searchCards(searchParams: any) {
+  //   const { name, state, document_number, origem, produto, pedido_number, entityId, empresaId } = searchParams;
+
+  //   const conditions = [];
+  //   const values = [entityId, empresaId];
+  //   let index = 3;
+
+  //   if (name) {
+  //     conditions.push(`(c.name ILIKE $${index} OR me.nome_obra ILIKE $${index})`);
+  //     values.push(`%${name}%`);
+  //     index++;
+  //   }
+  //   if (state) {
+  //     conditions.push(`c.state ILIKE $${index}`);
+  //     values.push(`%${state}%`);
+  //     index++;
+  //   }
+  //   if (document_number) {
+  //     conditions.push(`c.document_number ILIKE $${index}`);
+  //     values.push(`%${document_number}%`);
+  //     index++;
+  //   }
+  //   if (origem) {
+  //     conditions.push(`c.origem ILIKE $${index}`);
+  //     values.push(`%${origem}%`);
+  //     index++;
+  //   }
+  //   if (produto) {
+  //     conditions.push(`c.produto ILIKE $${index}`);
+  //     values.push(`%${produto}%`);
+  //     index++;
+  //   }
+  //   if (pedido_number) {
+  //     conditions.push(`c.pedido_number ILIKE $${index}`);
+  //     values.push(`%${pedido_number}%`);
+  //     index++;
+  //   }
+
+  //   const query = `
+  //     SELECT c.*, me.nome_obra FROM cards c
+  //     LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //     WHERE c.entity_id = $1 AND c.empresa_id = $2
+  //     ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
+
+  //     UNION
+
+  //     SELECT c.*, me.nome_obra FROM cards c
+  //     LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //     INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+  //     WHERE ua.user_id = $1 AND c.empresa_id = $2
+  //     ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
+
+  //     UNION
+
+  //     SELECT c.*, me.nome_obra FROM cards c
+  //     LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //     INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+  //     WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
+  //     ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''};
+  //   `;
+
+  //   return await this.databaseService.query(query, values);
+  // }
+
+  async searchCards(searchParams: any) {
+    const { searchType, searchTerm, entityId, empresaId } = searchParams;
+
+    console.log('searchType:', searchType);  // Adicione este log
+    console.log('searchTerm:', searchTerm);  // Adicione este log
+
+    let conditions = '';
+    const values = [entityId, empresaId, `%${searchTerm}%`];
+
+    switch (searchType) {
+      case 'name':
+        conditions = 'c.name ILIKE $3';
+        break;
+      case 'state':
+        conditions = 'c.state ILIKE $3';
+        break;
+      case 'document_number':
+        conditions = 'c.document_number ILIKE $3';
+        break;
+      case 'origem':
+        conditions = 'c.origem ILIKE $3';
+        break;
+      case 'produto':
+        conditions = 'c.produto ILIKE $3';
+        break;
+      case 'pedido_number':
+        conditions = 'c.pedido_number ILIKE $3';
+        break;
+      case 'nome_obra':
+        conditions = 'me.nome_obra ILIKE $3';
+        break;
+      default:
+        throw new Error('Invalid search type');
+    }
+
+    const query = `
+      SELECT c.*, me.nome_obra FROM cards c
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      WHERE c.entity_id = $1 AND c.empresa_id = $2 AND ${conditions}
+  
+      UNION
+  
+      SELECT c.*, me.nome_obra FROM cards c
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+      WHERE ua.user_id = $1 AND c.empresa_id = $2 AND ${conditions}
+  
+      UNION
+  
+      SELECT c.*, me.nome_obra FROM cards c
+      LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+      INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+      WHERE cs.shared_user_id = $1 AND c.empresa_id = $2 AND ${conditions};
+    `;
+
+    return await this.databaseService.query(query, values);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  async findCardById(cardId: number) {
+    const query = `
+      SELECT * FROM cards
+      WHERE card_id = $1
+    `;
+    const values = [cardId];
+    const result = await this.databaseService.query(query, values);
+    if (result.length === 0) {
+      throw new Error('Card not found');
+    }
+    return result[0];
+  }
+
+
+
+
+
+
+
+
+  async getTasksByDate(date: string, userId: number) {
+    const query = `
+      SELECT ct.*, c.*
+      FROM card_tasks ct
+      JOIN cards c ON ct.card_id = c.card_id
+      WHERE ct.due_date::date = $1::date AND ct.user_id = $2;
+    `;
+    const values = [date, userId];
+    return await this.databaseService.query(query, values);
+  }
+
 
 
   /// ----------------- anexos
@@ -30,17 +236,29 @@ export class CardService {
     return result;  // Retorna todos os anexos do card
   }
 
-  async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string) {
+  // async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string) {
+  //   const query = `
+  //     INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at)
+  //     VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+  //     RETURNING *;
+  //   `;
+  //   const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo];
+  //   const result = await this.databaseService.query(query, values);
+  //   console.log("Anexo adicionado:", result);
+  //   return result[0];  // Retorna o anexo adicionado
+  // }
+  async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string, comment: string, setor: string) {
     const query = `
-      INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+      INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at, comment, setor)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7, $8)
       RETURNING *;
     `;
-    const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo];
+    const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo, comment, setor];
     const result = await this.databaseService.query(query, values);
     console.log("Anexo adicionado:", result);
     return result[0];  // Retorna o anexo adicionado
   }
+
 
   async deleteAnexo(anexoId: number) {
     const query = `
@@ -77,7 +295,7 @@ export class CardService {
     console.log("Anexo encontrado:", result);
     return result[0];  // Retorna o anexo encontrado
   }
-  
+
 
 
 
@@ -234,12 +452,19 @@ export class CardService {
 
 
 
+  async obterApiChatbot(empresaId: number): Promise<string> {
+    const query = 'SELECT api_chatbot FROM empresas WHERE id = $1';
+    const result = await this.databaseService.query(query, [empresaId]);
+    return result[0]?.api_chatbot;
+  }
 
 
-  async enviarMensagemParaBotConversa(numero: string, contato: string, mensagem: string): Promise<void> {
-    const urlWebhook = 'https://backend.botconversa.com.br/api/v1/webhooks-automation/catch/31401/RZPmGB3NnLLL/';
+  async enviarMensagemParaBotConversa(empresaId: number, numero: string, contato: string, mensagem: string): Promise<void> {
+    const urlWebhook = await this.obterApiChatbot(empresaId);
 
-    console.log('service', numero, contato, mensagem)
+    if (!urlWebhook) {
+      throw new Error('API Chatbot URL not found for the given empresaId');
+    }
 
     const options = {
       method: 'POST',
@@ -248,17 +473,37 @@ export class CardService {
       },
     };
 
-    return new Promise<void>((resolve, reject) => {
-      const req = axios.post(urlWebhook, { numero, contato, mensagem }, options);
-
-      req.then(() => {
-        resolve();
-      }).catch(error => {
-        console.error('Erro ao enviar mensagem para o BotConversa:', error.message);
-        reject(new Error('Falha ao enviar mensagem para o BotConversa.'));
-      });
-    });
+    try {
+      await axios.post(urlWebhook, { numero, contato, mensagem }, options);
+    } catch (error) {
+      console.error('Erro ao enviar mensagem para o BotConversa:', error.message);
+      throw new Error('Falha ao enviar mensagem para o BotConversa.');
+    }
   }
+
+  // async enviarMensagemParaBotConversa(numero: string, contato: string, mensagem: string): Promise<void> {
+  //   const urlWebhook = 'https://backend.botconversa.com.br/api/v1/webhooks-automation/catch/31401/RZPmGB3NnLLL/';
+
+  //   console.log('service', numero, contato, mensagem)
+
+  //   const options = {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //     },
+  //   };
+
+  //   return new Promise<void>((resolve, reject) => {
+  //     const req = axios.post(urlWebhook, { numero, contato, mensagem }, options);
+
+  //     req.then(() => {
+  //       resolve();
+  //     }).catch(error => {
+  //       console.error('Erro ao enviar mensagem para o BotConversa:', error.message);
+  //       reject(new Error('Falha ao enviar mensagem para o BotConversa.'));
+  //     });
+  //   });
+  // }
 
 
 
@@ -468,14 +713,16 @@ export class CardService {
 
 
 
+
+
   // async findCardsPCP(entity_id: number, empresa_id: number) {
   //   const query = `
-  //     -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados
+  //     -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados, filtrando por status 'Vendido'
   //     WITH CombinedCards AS (
   //       SELECT c.*, me.*
   //       FROM cards c
   //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE c.entity_id = $1 AND c.empresa_id = $2
+  //       WHERE c.entity_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
 
   //       UNION
 
@@ -483,7 +730,7 @@ export class CardService {
   //       FROM cards c
   //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
   //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE ua.user_id = $1 AND c.empresa_id = $2
+  //       WHERE ua.user_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
   //     )
   //     SELECT * FROM CombinedCards;
   //   `;
@@ -491,7 +738,6 @@ export class CardService {
   //   const values = [entity_id, empresa_id];
   //   return await this.databaseService.query(query, values);
   // }
-
 
   async findCardsPCP(entity_id: number, empresa_id: number) {
     const query = `
@@ -509,6 +755,14 @@ export class CardService {
         INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
         LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
         WHERE ua.user_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
+        
+        UNION
+        
+        SELECT c.*, me.*
+        FROM cards c
+        INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+        WHERE cs.shared_user_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
       )
       SELECT * FROM CombinedCards;
     `;
@@ -516,6 +770,7 @@ export class CardService {
     const values = [entity_id, empresa_id];
     return await this.databaseService.query(query, values);
   }
+
 
 
 
@@ -744,14 +999,31 @@ export class CardService {
 
 
 
+  // async updateCardArquivado(id: number, status: string, columnId: number) {
+  //   const query = `
+  //     UPDATE cards
+  //     SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+  //     WHERE card_id = $1
+  //     RETURNING *;
+  //   `;
+  //   const values = [id, status, columnId];
+  //   try {
+  //     const result = await this.databaseService.query(query, values);
+  //     return result[0];
+  //   } catch (error) {
+  //     throw new Error('Erro ao atualizar o status do card: ' + error.message);
+  //   }
+  // }
+
   async updateCardArquivado(id: number, status: string, columnId: number) {
     const query = `
       UPDATE cards
-      SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, block_column = true
       WHERE card_id = $1
       RETURNING *;
     `;
     const values = [id, status, columnId];
+
     try {
       const result = await this.databaseService.query(query, values);
       return result[0];
@@ -1146,32 +1418,66 @@ export class CardService {
 
   // 
 
+  // async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number, dataInicial: string, dataFinal: string) {
+  //   const query = `
+  //     WITH CombinedCards AS (
+  //       SELECT c.*, me.nome_obra, false AS compartilhamento
+  //       FROM cards c
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE c.entity_id = $1 AND c.empresa_id = $2
+  //       AND c.created_at BETWEEN $3 AND $4
+
+  //       UNION
+
+  //       SELECT c.*, me.nome_obra, false AS compartilhamento
+  //       FROM cards c
+  //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE ua.user_id = $1 AND c.empresa_id = $2
+  //       AND c.created_at BETWEEN $3 AND $4
+
+  //       UNION
+
+  //       SELECT c.*, me.nome_obra, true AS compartilhamento
+  //       FROM cards c
+  //       INNER JOIN card_shareds cs ON cs.card_id = c.card_id
+  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
+  //       WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
+  //       AND c.created_at BETWEEN $3 AND $4
+  //     )
+  //     SELECT * FROM CombinedCards;
+  //   `;
+
+  //   const values = [entity_id, empresa_id, dataInicial, dataFinal];
+  //   return await this.databaseService.query(query, values);
+  // }
+
+
+
+  /// ------------- ORIGINAL ACIMA --------------------
+
+
+
   async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number, dataInicial: string, dataFinal: string) {
     const query = `
       WITH CombinedCards AS (
-        SELECT c.*, me.nome_obra, false AS compartilhamento
+        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id
         FROM cards c
-        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-        WHERE c.entity_id = $1 AND c.empresa_id = $2
-        AND c.created_at BETWEEN $3 AND $4
+        WHERE c.entity_id = $1 AND c.empresa_id = $2 AND c.created_at BETWEEN $3 AND $4
   
         UNION
   
-        SELECT c.*, me.nome_obra, false AS compartilhamento
+        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id
         FROM cards c
         INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-        WHERE ua.user_id = $1 AND c.empresa_id = $2
-        AND c.created_at BETWEEN $3 AND $4
+        WHERE ua.user_id = $1 AND c.empresa_id = $2 AND c.created_at BETWEEN $3 AND $4
   
         UNION
   
-        SELECT c.*, me.nome_obra, true AS compartilhamento
+        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id
         FROM cards c
         INNER JOIN card_shareds cs ON cs.card_id = c.card_id
-        LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-        WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
-        AND c.created_at BETWEEN $3 AND $4
+        WHERE cs.shared_user_id = $1 AND c.empresa_id = $2 AND c.created_at BETWEEN $3 AND $4
       )
       SELECT * FROM CombinedCards;
     `;
@@ -1179,6 +1485,9 @@ export class CardService {
     const values = [entity_id, empresa_id, dataInicial, dataFinal];
     return await this.databaseService.query(query, values);
   }
+
+
+
 
 
 
