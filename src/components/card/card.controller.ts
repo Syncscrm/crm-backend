@@ -10,45 +10,36 @@ export class CardController {
 
 
 
+// src/components/processColumns/processColumns.controller.ts
+@Post('add-messenger')
+async addMessage(@Body() body) {
+  const { id_remetente, id_destinatario, message, read, empresa_id } = body; // Adiciona empresa_id aqui
+  return await this.cardService.addMessage(id_remetente, id_destinatario, message, read, empresa_id); // Passa empresa_id para o serviço
+}
 
-  // @Get('search')
-  // async searchCards(
-  //   @Query() query: any,
-  //   @Query('entityId', ParseIntPipe) entityId: number,
-  //   @Query('empresaId', ParseIntPipe) empresaId: number
-  // ) {
-  //   const { name, state, document_number, origem, produto, pedido_number } = query;
 
-  //   return await this.cardService.searchCards({
-  //     name,
-  //     state,
-  //     document_number,
-  //     origem,
-  //     produto,
-  //     pedido_number,
-  //     entityId,
-  //     empresaId
-  //   });
-  // }
+
+
+
 
   @Get('search')
-async searchCards(
-  @Query() query: any,
-  @Query('entityId', ParseIntPipe) entityId: number,
-  @Query('empresaId', ParseIntPipe) empresaId: number
-) {
-  const { searchType, searchTerm } = query;
-  
-  console.log('searchType:', searchType);  // Adicione este log
-  console.log('searchTerm:', searchTerm);  // Adicione este log
+  async searchCards(
+    @Query() query: any,
+    @Query('entityId', ParseIntPipe) entityId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    const { searchType, searchTerm } = query;
 
-  return await this.cardService.searchCards({
-    searchType,
-    searchTerm,
-    entityId,
-    empresaId
-  });
-}
+    console.log('searchType:', searchType);  // Adicione este log
+    console.log('searchTerm:', searchTerm);  // Adicione este log
+
+    return await this.cardService.searchCards({
+      searchType,
+      searchTerm,
+      entityId,
+      empresaId
+    });
+  }
 
 
 
@@ -86,6 +77,24 @@ async searchCards(
   }
 
 
+  // @Put(':anexoId/toggle-privado')
+  // async togglePrivado(
+  //   @Param('anexoId', ParseIntPipe) anexoId: number,
+  //   @Body('privado') privado: boolean
+  // ) {
+  //   return await this.cardService.togglePrivado(anexoId, privado);
+  // }
+
+  @Put(':anexoId/toggle-privado')
+  async togglePrivado(
+    @Param('anexoId', ParseIntPipe) anexoId: number,
+    @Body('privado') privado: boolean
+  ) {
+    const result = await this.cardService.togglePrivado(anexoId, privado);
+    return { success: true, result };
+  }
+
+
 
   @Get(':cardId/anexos')
   async getAnexosByCardId(@Param('cardId', ParseIntPipe) cardId: number) {
@@ -100,12 +109,20 @@ async searchCards(
   //   console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo });
   //   return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo);
   // }
+  // @Post(':cardId/add-anexo')
+  // async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
+  //   const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor } = body;
+  //   console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor });
+  //   return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor);
+  // }
+
   @Post(':cardId/add-anexo')
 async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
-  const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor } = body;
-  console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor });
-  return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor);
+  const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id } = body;
+  console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id });
+  return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id);
 }
+
 
 
   @Delete(':anexoId/delete-anexo')
@@ -260,6 +277,8 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
     return await this.cardService.updateCardEtiqueta(cardId, etiqueta_id);
   }
 
+
+
   @Get('etiquetas/:empresaId')
   async buscarEtiquetas(
     @Param('empresaId', ParseIntPipe) empresaId: number,
@@ -360,11 +379,11 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
   }
 
 
-  @Post('add-messenger')
-  async addMessage(@Body() body) {
-    const { id_remetente, id_destinatario, message, read } = body;
-    return await this.cardService.addMessage(id_remetente, id_destinatario, message, read);
-  }
+  // @Post('add-messenger')
+  // async addMessage(@Body() body) {
+  //   const { id_remetente, id_destinatario, message, read } = body;
+  //   return await this.cardService.addMessage(id_remetente, id_destinatario, message, read);
+  // }
 
 
 

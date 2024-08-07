@@ -8,6 +8,142 @@ export class UsersController {
 
 
 
+
+
+  @Post('create')
+async create(@Body() body) {
+  // Agora incluindo o avatar e empresa_id na extração do corpo da requisição
+  const { userEmail, username, password, email, address, city, state, cep, fone, avatar, empresa_id } = body;
+
+  console.log('### CREATE ### Controller - userEmail:', userEmail);
+
+  // Passe todos os parâmetros, incluindo o avatar e empresa_id, para o serviço
+  return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar, empresa_id);
+}
+
+
+
+
+
+@Put('updateColunaPedido/:empresaId')
+async updateColunaPedido(
+  @Param('empresaId', ParseIntPipe) empresaId: number,
+  @Body() body: { pedido_coluna: string }
+) {
+  return await this.usersService.updateColunaPedido(empresaId, body.pedido_coluna);
+}
+
+
+
+
+
+
+  @Put(':userId')
+  async updateUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() body: {
+      username?: string,
+      fone?: string,
+      avatar?: string,
+      is_active?: boolean,
+      meta_user?: number,
+      meta_grupo?: number,
+      entidade?: string,
+      access_level?: number,
+      address?: string,
+      city?: string,
+      state?: string,
+      cep?: string,
+      user_type?: string,
+      empresa_id?: number // Adicionando o campo empresa_id
+    }
+  ) {
+    console.log('Recebendo solicitação para atualizar usuário:', userId, body);
+    try {
+      const updatedUser = await this.usersService.updateUser(userId, body);
+      return {
+        message: 'Usuário atualizado com sucesso',
+        user: updatedUser,
+      };
+    } catch (error) {
+      console.error('Erro ao atualizar o usuário:', error.message);
+      throw new HttpException({
+        status: HttpStatus.BAD_REQUEST,
+        error: 'Erro ao atualizar o usuário. ' + error.message,
+      }, HttpStatus.BAD_REQUEST);
+    }
+  }
+  
+
+
+  @Get(':userId/permissions')
+  async getUserColumnPermissions(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number
+  ) {
+
+    console.log(userId, empresaId)
+    const permissions = await this.usersService.getUserColumnPermissions(userId, empresaId);
+    return permissions;
+  }
+
+  @Post(':userId/permissions')
+  async addColumnPermissionToUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body('columnId', ParseIntPipe) columnId: number,
+    @Body('canEdit', ParseBoolPipe) canEdit: boolean,
+    @Body('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    await this.usersService.addColumnPermissionToUser(userId, columnId, canEdit, empresaId);
+    return { message: 'Permissão adicionada com sucesso ao usuário.' };
+  }
+
+  @Delete(':userId/permissions/:columnId')
+  async removeColumnPermissionFromUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('columnId', ParseIntPipe) columnId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    await this.usersService.removeColumnPermissionFromUser(userId, columnId, empresaId);
+    return { message: 'Permissão removida com sucesso do usuário.' };
+  }
+
+  @Get(':userId/columns')
+  async getUserColumns(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    const columns = await this.usersService.getUserColumns(userId, empresaId);
+    return columns;
+  }
+
+  @Post(':userId/columns')
+  async addColumnToUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body('columnId', ParseIntPipe) columnId: number,
+    @Body('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    await this.usersService.addColumnToUser(userId, columnId, empresaId);
+    return {
+      message: 'Coluna adicionada com sucesso ao usuário.',
+    };
+  }
+
+  @Delete(':userId/columns/:columnId')
+  async removeColumnFromUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('columnId', ParseIntPipe) columnId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number
+  ) {
+    await this.usersService.removeColumnFromUser(userId, columnId, empresaId);
+    return {
+      message: 'Coluna removida com sucesso do usuário.',
+    };
+  }
+
+
+
+
   @Put(':userId/change-password')
   async changeUserPassword(
     @Param('userId', ParseIntPipe) userId: number,
@@ -244,10 +380,10 @@ export class UsersController {
     return await this.usersService.deleteOrigem(id);
   }
 
-  @Delete('deleteColuna/:id')
-  async deleteColuna(@Param('id', ParseIntPipe) id: number) {
-    return await this.usersService.deleteColuna(id);
-  }
+  // @Delete('deleteColuna/:id')
+  // async deleteColuna(@Param('id', ParseIntPipe) id: number) {
+  //   return await this.usersService.deleteColuna(id);
+  // }
 
   @Delete('deleteProduto/:id')
   async deleteProduto(@Param('id', ParseIntPipe) id: number) {
@@ -256,11 +392,23 @@ export class UsersController {
 
   //------------- update -----------
 
+  // @Put('updateEtiqueta/:id')
+  // async updateEtiqueta(@Param('id', ParseIntPipe) id: number, @Body() body) {
+  //   const { description } = body;
+  //   return await this.usersService.updateEtiqueta(id, description);
+  // }
+
+  // src/users/users.controller.ts
+
+  // src/users/users.controller.ts
+
   @Put('updateEtiqueta/:id')
   async updateEtiqueta(@Param('id', ParseIntPipe) id: number, @Body() body) {
-    const { description } = body;
-    return await this.usersService.updateEtiqueta(id, description);
+    const { description, color, order } = body;
+    return await this.usersService.updateEtiqueta(id, description, color, order);
   }
+
+
 
   @Put('updateOrigem/:id')
   async updateOrigem(@Param('id', ParseIntPipe) id: number, @Body() body) {
@@ -268,11 +416,33 @@ export class UsersController {
     return await this.usersService.updateOrigem(id, name);
   }
 
+  // @Put('updateColuna/:id')
+  // async updateColuna(@Param('id', ParseIntPipe) id: number, @Body() body) {
+  //   const { name } = body;
+  //   return await this.usersService.updateColuna(id, name);
+  // }
+
   @Put('updateColuna/:id')
   async updateColuna(@Param('id', ParseIntPipe) id: number, @Body() body) {
-    const { name } = body;
-    return await this.usersService.updateColuna(id, name);
+    const { name, display_order, description, setor } = body;
+    return await this.usersService.updateColuna(id, name, display_order, description, setor);
   }
+
+  @Delete('deleteColuna/:id')
+  async deleteColuna(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.usersService.deleteColuna(id);
+    } catch (error) {
+      throw new HttpException({
+        status: HttpStatus.BAD_REQUEST,
+        error: error.message,
+      }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+
+
+
 
   @Put('updateProduto/:id')
   async updateProduto(@Param('id', ParseIntPipe) id: number, @Body() body) {
@@ -382,35 +552,33 @@ export class UsersController {
 
 
 
-  @Get(':userId/permissions')
-  async getUserColumnPermissions(
-    @Param('userId', ParseIntPipe) userId: number
-  ) {
-    const permissions = await this.usersService.getUserColumnPermissions(userId);
-    return permissions;
-  }
+  // @Get(':userId/permissions')
+  // async getUserColumnPermissions(
+  //   @Param('userId', ParseIntPipe) userId: number
+  // ) {
+  //   const permissions = await this.usersService.getUserColumnPermissions(userId);
+  //   return permissions;
+  // }
 
-  @Post(':userId/permissions')
-  async addColumnPermissionToUser(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Body('columnId', ParseIntPipe) columnId: number,
-    @Body('canEdit', ParseBoolPipe) canEdit: boolean,
-    @Body('empresaId', ParseIntPipe) empresaId: number
-  ) {
-    await this.usersService.addColumnPermissionToUser(userId, columnId, canEdit, empresaId);
-    return { message: 'Permissão adicionada com sucesso ao usuário.' };
-  }
+  // @Post(':userId/permissions')
+  // async addColumnPermissionToUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Body('columnId', ParseIntPipe) columnId: number,
+  //   @Body('canEdit', ParseBoolPipe) canEdit: boolean,
+  //   @Body('empresaId', ParseIntPipe) empresaId: number
+  // ) {
+  //   await this.usersService.addColumnPermissionToUser(userId, columnId, canEdit, empresaId);
+  //   return { message: 'Permissão adicionada com sucesso ao usuário.' };
+  // }
 
-  @Delete(':userId/permissions/:columnId')
-  async removeColumnPermissionFromUser(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Param('columnId', ParseIntPipe) columnId: number
-  ) {
-    await this.usersService.removeColumnPermissionFromUser(userId, columnId);
-    return { message: 'Permissão removida com sucesso do usuário.' };
-  }
-
-
+  // @Delete(':userId/permissions/:columnId')
+  // async removeColumnPermissionFromUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Param('columnId', ParseIntPipe) columnId: number
+  // ) {
+  //   await this.usersService.removeColumnPermissionFromUser(userId, columnId);
+  //   return { message: 'Permissão removida com sucesso do usuário.' };
+  // }
 
 
 
@@ -429,20 +597,40 @@ export class UsersController {
   @Post(':userId/afilhados')
   async addAfilhadoToUser(
     @Param('userId', ParseIntPipe) userId: number,
-    @Body('afilhadoId', ParseIntPipe) afilhadoId: number
+    @Body() body: { afilhadoId: number, empresaId: number } // Adicione empresaId aqui
   ) {
-    await this.usersService.addAfilhadoToUser(userId, afilhadoId);
+    await this.usersService.addAfilhadoToUser(userId, body.afilhadoId, body.empresaId); // Passe empresaId para o serviço
     return { message: 'Afilhado adicionado com sucesso.' };
   }
-
+  
   @Delete(':userId/afilhados/:afilhadoId')
   async removeAfilhadoFromUser(
     @Param('userId', ParseIntPipe) userId: number,
-    @Param('afilhadoId', ParseIntPipe) afilhadoId: number
+    @Param('afilhadoId', ParseIntPipe) afilhadoId: number,
+    @Query('empresaId', ParseIntPipe) empresaId: number // Adicione empresaId como parâmetro da query
   ) {
-    await this.usersService.removeAfilhadoFromUser(userId, afilhadoId);
+    await this.usersService.removeAfilhadoFromUser(userId, afilhadoId, empresaId); // Passe empresaId para o serviço
     return { message: 'Afilhado removido com sucesso.' };
   }
+  
+
+  // @Post(':userId/afilhados')
+  // async addAfilhadoToUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Body('afilhadoId', ParseIntPipe) afilhadoId: number
+  // ) {
+  //   await this.usersService.addAfilhadoToUser(userId, afilhadoId);
+  //   return { message: 'Afilhado adicionado com sucesso.' };
+  // }
+
+  // @Delete(':userId/afilhados/:afilhadoId')
+  // async removeAfilhadoFromUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Param('afilhadoId', ParseIntPipe) afilhadoId: number
+  // ) {
+  //   await this.usersService.removeAfilhadoFromUser(userId, afilhadoId);
+  //   return { message: 'Afilhado removido com sucesso.' };
+  // }
 
 
   @Get(':userId/afilhados')
@@ -453,11 +641,11 @@ export class UsersController {
 
 
 
-  @Get(':userId/columns')
-  async getUserColumns(@Param('userId', ParseIntPipe) userId: number) {
-    const columns = await this.usersService.getUserColumns(userId);
-    return columns;
-  }
+  // @Get(':userId/columns')
+  // async getUserColumns(@Param('userId', ParseIntPipe) userId: number) {
+  //   const columns = await this.usersService.getUserColumns(userId);
+  //   return columns;
+  // }
 
   @Get(':userId/columns-info')
   async getUserColumnsInfo(@Param('userId', ParseIntPipe) userId: number) {
@@ -466,27 +654,27 @@ export class UsersController {
   }
 
 
-  @Post(':userId/columns')
-  async addColumnToUser(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Body('columnId', ParseIntPipe) columnId: number
-  ) {
-    await this.usersService.addColumnToUser(userId, columnId);
-    return {
-      message: 'Coluna adicionada com sucesso ao usuário.',
-    };
-  }
+  // @Post(':userId/columns')
+  // async addColumnToUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Body('columnId', ParseIntPipe) columnId: number
+  // ) {
+  //   await this.usersService.addColumnToUser(userId, columnId);
+  //   return {
+  //     message: 'Coluna adicionada com sucesso ao usuário.',
+  //   };
+  // }
 
-  @Delete(':userId/columns/:columnId')
-  async removeColumnFromUser(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Param('columnId', ParseIntPipe) columnId: number
-  ) {
-    await this.usersService.removeColumnFromUser(userId, columnId);
-    return {
-      message: 'Coluna removida com sucesso do usuário.',
-    };
-  }
+  // @Delete(':userId/columns/:columnId')
+  // async removeColumnFromUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Param('columnId', ParseIntPipe) columnId: number
+  // ) {
+  //   await this.usersService.removeColumnFromUser(userId, columnId);
+  //   return {
+  //     message: 'Coluna removida com sucesso do usuário.',
+  //   };
+  // }
 
 
 
@@ -521,8 +709,6 @@ export class UsersController {
   // }
 
 
- 
-  
 
 
 
@@ -538,38 +724,40 @@ export class UsersController {
 
 
 
-  @Put(':userId')
-async updateUser(
-  @Param('userId', ParseIntPipe) userId: number,
-  @Body() body: {
-    username?: string,
-    fone?: string,
-    avatar?: string,
-    is_active?: boolean,
-    meta_user?: number,
-    meta_grupo?: number,
-    entidade?: string,
-    access_level?: number,
-    address?: string,
-    city?: string,
-    state?: string,
-    cep?: string,
-    user_type?: string // Adicionando o campo user_type
-  }
-) {
-  try {
-    const updatedUser = await this.usersService.updateUser(userId, body);
-    return {
-      message: 'Usuário atualizado com sucesso',
-      user: updatedUser,
-    };
-  } catch (error) {
-    throw new HttpException({
-      status: HttpStatus.BAD_REQUEST,
-      error: 'Erro ao atualizar o usuário. ' + error.message,
-    }, HttpStatus.BAD_REQUEST);
-  }
-}
+
+
+  // @Put(':userId')
+  // async updateUser(
+  //   @Param('userId', ParseIntPipe) userId: number,
+  //   @Body() body: {
+  //     username?: string,
+  //     fone?: string,
+  //     avatar?: string,
+  //     is_active?: boolean,
+  //     meta_user?: number,
+  //     meta_grupo?: number,
+  //     entidade?: string,
+  //     access_level?: number,
+  //     address?: string,
+  //     city?: string,
+  //     state?: string,
+  //     cep?: string,
+  //     user_type?: string // Adicionando o campo user_type
+  //   }
+  // ) {
+  //   try {
+  //     const updatedUser = await this.usersService.updateUser(userId, body);
+  //     return {
+  //       message: 'Usuário atualizado com sucesso',
+  //       user: updatedUser,
+  //     };
+  //   } catch (error) {
+  //     throw new HttpException({
+  //       status: HttpStatus.BAD_REQUEST,
+  //       error: 'Erro ao atualizar o usuário. ' + error.message,
+  //     }, HttpStatus.BAD_REQUEST);
+  //   }
+  // }
 
 
 
@@ -630,17 +818,17 @@ async updateUser(
     }
   }
 
-  // src/users/users.controller.ts
-  @Post('create')
-  async create(@Body() body) {
-    // Agora incluindo o avatar na extração do corpo da requisição
-    const { userEmail, username, password, email, address, city, state, cep, fone, avatar } = body;
+  // // src/users/users.controller.ts
+  // @Post('create')
+  // async create(@Body() body) {
+  //   // Agora incluindo o avatar na extração do corpo da requisição
+  //   const { userEmail, username, password, email, address, city, state, cep, fone, avatar } = body;
 
-    console.log('### CREATE ### Controller - userEmail:', userEmail);
+  //   console.log('### CREATE ### Controller - userEmail:', userEmail);
 
-    // Passe todos os parâmetros, incluindo o avatar, para o serviço
-    return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar);
-  }
+  //   // Passe todos os parâmetros, incluindo o avatar, para o serviço
+  //   return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar);
+  // }
 
 
 

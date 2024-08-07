@@ -15,69 +15,331 @@ export class CardService {
 
 
 
-  // async searchCards(searchParams: any) {
-  //   const { name, state, document_number, origem, produto, pedido_number, entityId, empresaId } = searchParams;
+  async addMessage(id_remetente: number, id_destinatario: number, message: string, read: boolean, empresa_id: number) { // Adiciona empresa_id aqui
+    try {
+      // Inicia uma transação
+      await this.databaseService.query('BEGIN');
+  
+      // Insere a mensagem na tabela de mensagens
+      const insertMessageQuery = `
+        INSERT INTO messages(id_remetente, id_destinatario, message, created_at, read, empresa_id) 
+        VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5) 
+        RETURNING *;
+      `;
+      const messageValues = [id_remetente, id_destinatario, message, read, empresa_id]; // Adiciona empresa_id aqui
+      const messageResult = await this.databaseService.query(insertMessageQuery, messageValues);
+  
+      // Finaliza a transação com sucesso
+      await this.databaseService.query('COMMIT');
+  
+      return messageResult[0]; // Retorna a mensagem adicionada
+    } catch (error) {
+      // Reverte todas as operações se ocorrer algum erro
+      await this.databaseService.query('ROLLBACK');
+      throw new Error('Erro ao adicionar mensagem: ' + error.message);
+    }
+  }
+  
 
-  //   const conditions = [];
-  //   const values = [entityId, empresaId];
-  //   let index = 3;
 
-  //   if (name) {
-  //     conditions.push(`(c.name ILIKE $${index} OR me.nome_obra ILIKE $${index})`);
-  //     values.push(`%${name}%`);
-  //     index++;
-  //   }
-  //   if (state) {
-  //     conditions.push(`c.state ILIKE $${index}`);
-  //     values.push(`%${state}%`);
-  //     index++;
-  //   }
-  //   if (document_number) {
-  //     conditions.push(`c.document_number ILIKE $${index}`);
-  //     values.push(`%${document_number}%`);
-  //     index++;
-  //   }
-  //   if (origem) {
-  //     conditions.push(`c.origem ILIKE $${index}`);
-  //     values.push(`%${origem}%`);
-  //     index++;
-  //   }
-  //   if (produto) {
-  //     conditions.push(`c.produto ILIKE $${index}`);
-  //     values.push(`%${produto}%`);
-  //     index++;
-  //   }
-  //   if (pedido_number) {
-  //     conditions.push(`c.pedido_number ILIKE $${index}`);
-  //     values.push(`%${pedido_number}%`);
-  //     index++;
-  //   }
 
-  //   const query = `
-  //     SELECT c.*, me.nome_obra FROM cards c
-  //     LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //     WHERE c.entity_id = $1 AND c.empresa_id = $2
-  //     ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
 
-  //     UNION
 
-  //     SELECT c.*, me.nome_obra FROM cards c
-  //     LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //     INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-  //     WHERE ua.user_id = $1 AND c.empresa_id = $2
-  //     ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
+  async update(
+    id: number,
+    name: string,
+    state: string,
+    city: string,
+    fone: string,
+    email: string,
+    column_id: number,
+    entity_id: number,
+    empresa_id: number,
+    document_number: string,
+    cost_value: number,
+    sale_value: number,
+    status: string,
+    origem: string,
+    produto: string,
+    status_date: string | null,
+    second_document_number: string,
+    pedido_number: string,
+    etiqueta_id: number
+  ) {
 
-  //     UNION
+    const query = `
+      UPDATE cards
+      SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
+          document_number = $9, cost_value = $10, sale_value = $11, status = $12, 
+          status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18
+      WHERE card_id = $1
+      RETURNING *
+    `;
 
-  //     SELECT c.*, me.nome_obra FROM cards c
-  //     LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //     INNER JOIN card_shareds cs ON cs.card_id = c.card_id
-  //     WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
-  //     ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''};
-  //   `;
 
-  //   return await this.databaseService.query(query, values);
-  // }
+    try {
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(id);
+      }
+
+
+
+    } catch (error) {
+      throw new Error('Erro ao atualizar o updated_at');
+    }
+
+
+    const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
+    const result = await this.databaseService.query(query, values);
+    return result;
+  }
+
+
+
+  async isStatusDifferent(cardId: number): Promise<boolean> {
+    const query = `
+      SELECT status
+      FROM cards
+      WHERE card_id = $1;
+    `;
+    try {
+      const result = await this.databaseService.query(query, [cardId]);
+      const cardStatus = result[0].status;
+      return cardStatus !== 'Vendido' && cardStatus !== 'Perdido' && cardStatus !== 'Arquivado';
+    } catch (error) {
+      throw new Error('Erro ao verificar o status do card: ' + error.message);
+    }
+  }
+
+
+  async updatePotencialVenda(id: number, potencialVenda: number) {
+    const query = `
+      UPDATE cards
+      SET potencial_venda = $2
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, potencialVenda];
+    try {
+      const result = await this.databaseService.query(query, values);
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(id);
+      }
+
+
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o potencial de venda');
+    }
+  }
+
+
+
+
+  async updateTarefa(taskId: number, completed: boolean, cardId: number) {
+    await this.databaseService.query('BEGIN');
+    try {
+
+
+      const query = `
+        UPDATE card_tasks
+        SET completed = $2,
+            complete_date = CASE WHEN $2 = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END
+        WHERE task_id = $1
+        RETURNING *;
+      `;
+      const taskValues = [taskId, completed];
+      const taskResult = await this.databaseService.query(query, taskValues);
+
+      await this.databaseService.query('COMMIT');
+      return taskResult[0];
+    } catch (error) {
+      await this.databaseService.query('ROLLBACK');
+      throw new Error('Erro ao atualizar a tarefa e o cartão: ' + error.message);
+    }
+  }
+
+
+  async updateBlockColumn(id: number, block_column: boolean) {
+    const query = `
+      UPDATE cards
+      SET block_column = $2
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, block_column];
+    try {
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o bloqueio de coluna');
+    }
+  }
+
+  async updateCardEtiqueta(cardId: number, etiqueta_id: number): Promise<any> {
+    const query = `
+      UPDATE cards
+      SET etiqueta_id = $2
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [cardId, etiqueta_id];
+    try {
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(cardId);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(cardId);
+      }
+
+
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o etiqueta do card: ' + error.message);
+    }
+  }
+
+  async updateCardColumn(cardId: number, columnId: number): Promise<any> {
+    const query = `
+      UPDATE cards
+      SET column_id = $2
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [cardId, columnId];
+    try {
+
+
+      await this.updateUpdatedAt(cardId);
+
+
+
+      const result = await this.databaseService.query(query, values);
+      if (result.length === 0) {
+        throw new Error('Card não encontrado');
+      }
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o column_id do card: ' + error.message);
+    }
+  }
+
+  async updateCardStatus(id: number, status: string, columnId: number | null) {
+    const query = `
+      UPDATE cards
+      SET status = $2, column_id = COALESCE($3, column_id), status_date = CURRENT_TIMESTAMP
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, status, columnId];
+    try {
+
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(id);
+      }
+
+
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o status do card: ' + error.message);
+    }
+  }
+
+  async updateCardStatusVendaPerdida(id: number, status: string, motivo: string, columnId: number) {
+    const query = `
+      UPDATE cards
+      SET status = $2, motivo_venda_perdida = $3, column_id = $4, status_date = CURRENT_TIMESTAMP
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, status, motivo, columnId];
+    try {
+
+
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(id);
+      }
+
+
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o status do card: ' + error.message);
+    }
+  }
+
+  async updateCardArquivado(id: number, status: string, columnId: number) {
+    const query = `
+      UPDATE cards
+      SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, block_column = true
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [id, status, columnId];
+    try {
+
+
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(id);
+      }
+
+
+      const result = await this.databaseService.query(query, values);
+      return result[0];
+    } catch (error) {
+      throw new Error('Erro ao atualizar o status do card: ' + error.message);
+    }
+  }
+
+  async updateUpdatedAt(cardId: number): Promise<any> {
+    const query = `
+      UPDATE cards
+      SET updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = $1
+      RETURNING *;
+    `;
+    const values = [cardId];
+    try {
+      const result = await this.databaseService.query(query, values);
+      return result[0]; // Retorna o card atualizado
+    } catch (error) {
+      throw new Error('Erro ao atualizar o campo updated_at do card: ' + error.message);
+    }
+  }
+
+
+
+
+
 
   async searchCards(searchParams: any) {
     const { searchType, searchTerm, entityId, empresaId } = searchParams;
@@ -140,56 +402,6 @@ export class CardService {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   async findCardById(cardId: number) {
     const query = `
       SELECT * FROM cards
@@ -202,11 +414,6 @@ export class CardService {
     }
     return result[0];
   }
-
-
-
-
-
 
 
 
@@ -226,6 +433,33 @@ export class CardService {
   /// ----------------- anexos
 
 
+  async togglePrivado(anexoId: number, privado: boolean) {
+    const query = `
+      UPDATE anexos
+      SET privado = $2
+      WHERE id = $1
+      RETURNING *;
+    `;
+    const values = [anexoId, privado];
+    try {
+      const result = await this.databaseService.query(query, values);
+      return result[0]; // Retorna o anexo atualizado
+    } catch (error) {
+      throw new Error('Erro ao atualizar o campo privado do anexo: ' + error.message);
+    }
+  }
+
+
+  // async getAnexosByCardId(cardId: number) {
+  //   const query = `
+  //     SELECT * FROM anexos
+  //     WHERE card_id = $1;
+  //   `;
+  //   const values = [cardId];
+  //   const result = await this.databaseService.query(query, values);
+  //   return result;  // Retorna todos os anexos do card
+  // }
+
   async getAnexosByCardId(cardId: number) {
     const query = `
       SELECT * FROM anexos
@@ -235,29 +469,22 @@ export class CardService {
     const result = await this.databaseService.query(query, values);
     return result;  // Retorna todos os anexos do card
   }
+  
 
-  // async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string) {
-  //   const query = `
-  //     INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at)
-  //     VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
-  //     RETURNING *;
-  //   `;
-  //   const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo];
-  //   const result = await this.databaseService.query(query, values);
-  //   console.log("Anexo adicionado:", result);
-  //   return result[0];  // Retorna o anexo adicionado
-  // }
-  async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string, comment: string, setor: string) {
+
+
+  async addAnexo(cardId: number, empresaId: number, url: string, nomeArquivo: string, tamanho: number, tipoArquivo: string, comment: string, setor: string, userId: number) {
     const query = `
-      INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at, comment, setor)
-      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7, $8)
+      INSERT INTO anexos (card_id, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, created_at, comment, setor, user_id)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7, $8, $9)
       RETURNING *;
     `;
-    const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo, comment, setor];
+    const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo, comment, setor, userId];
     const result = await this.databaseService.query(query, values);
     console.log("Anexo adicionado:", result);
     return result[0];  // Retorna o anexo adicionado
   }
+  
 
 
   async deleteAnexo(anexoId: number) {
@@ -305,24 +532,6 @@ export class CardService {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   async deleteAllAnexosByCardId(cardId: number) {
     const query = `
       DELETE FROM anexos
@@ -335,30 +544,6 @@ export class CardService {
     return result;
   }
 
-
-
-  // async deleteCard(cardId: number) {
-  //   await this.databaseService.query('BEGIN');
-  //   try {
-  //     await this.deleteCardHistory(cardId);
-  //     await this.deleteCardTasks(cardId);
-  //     await this.deleteCardShareds(cardId);
-  //     await this.deleteModuloEsquadrias(cardId);
-
-  //     const deleteQuery = `DELETE FROM cards WHERE card_id = $1 RETURNING *;`;
-  //     const result = await this.databaseService.query(deleteQuery, [cardId]);
-
-  //     if (result.length === 0) {
-  //       throw new Error('Nenhum card encontrado para o card_id fornecido.');
-  //     }
-
-  //     await this.databaseService.query('COMMIT');
-  //     return result; // Retorna o card excluído
-  //   } catch (error) {
-  //     await this.databaseService.query('ROLLBACK');
-  //     throw new Error('Erro ao excluir o card e seus registros relacionados: ' + error.message);
-  //   }
-  // }
 
 
   async deleteCard(cardId: number) {
@@ -432,26 +617,6 @@ export class CardService {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   async obterApiChatbot(empresaId: number): Promise<string> {
     const query = 'SELECT api_chatbot FROM empresas WHERE id = $1';
     const result = await this.databaseService.query(query, [empresaId]);
@@ -474,6 +639,8 @@ export class CardService {
     };
 
     try {
+
+
       await axios.post(urlWebhook, { numero, contato, mensagem }, options);
     } catch (error) {
       console.error('Erro ao enviar mensagem para o BotConversa:', error.message);
@@ -481,73 +648,8 @@ export class CardService {
     }
   }
 
-  // async enviarMensagemParaBotConversa(numero: string, contato: string, mensagem: string): Promise<void> {
-  //   const urlWebhook = 'https://backend.botconversa.com.br/api/v1/webhooks-automation/catch/31401/RZPmGB3NnLLL/';
-
-  //   console.log('service', numero, contato, mensagem)
-
-  //   const options = {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     },
-  //   };
-
-  //   return new Promise<void>((resolve, reject) => {
-  //     const req = axios.post(urlWebhook, { numero, contato, mensagem }, options);
-
-  //     req.then(() => {
-  //       resolve();
-  //     }).catch(error => {
-  //       console.error('Erro ao enviar mensagem para o BotConversa:', error.message);
-  //       reject(new Error('Falha ao enviar mensagem para o BotConversa.'));
-  //     });
-  //   });
-  // }
 
 
-
-
-
-
-
-
-  async updateBlockColumn(id: number, block_column: boolean) {
-    const query = `
-      UPDATE cards
-      SET block_column = $2, updated_at = CURRENT_TIMESTAMP
-      WHERE card_id = $1
-      RETURNING *;
-    `;
-    const values = [id, block_column];
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0];  // Retorna a linha atualizada
-    } catch (error) {
-      throw new Error('Erro ao atualizar bloquio de coluna');
-    }
-  }
-
-
-
-
-
-  // Método para atualizar o column_id de um card
-  async updateCardEtiqueta(cardId: number, etiqueta_id: number): Promise<any> {
-    const query = `
-    UPDATE cards
-    SET etiqueta_id = $2
-    WHERE card_id = $1
-    RETURNING *;
-  `;
-    const values = [cardId, etiqueta_id];
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0]; // Assume que a atualização retorna o card atualizado
-    } catch (error) {
-      throw new Error('Erro ao atualizar o etiqueta do card: ' + error.message);
-    }
-  }
 
 
   async buscarEtiquetas(empresa_id: number) {
@@ -684,60 +786,34 @@ export class CardService {
   }
 
 
-  async addMessage(id_remetente: number, id_destinatario: number, message: string, read: boolean) {
-    try {
-      // Inicia uma transação
-      await this.databaseService.query('BEGIN');
+  // async addMessage(id_remetente: number, id_destinatario: number, message: string, read: boolean) {
+  //   try {
+  //     // Inicia uma transação
+  //     await this.databaseService.query('BEGIN');
 
-      // Insere a mensagem na tabela de mensagens
-      const insertMessageQuery = `
-        INSERT INTO messages(id_remetente, id_destinatario, message, created_at, read)
-        VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
-        RETURNING *;
-      `;
-      const messageValues = [id_remetente, id_destinatario, message, read];
-      const messageResult = await this.databaseService.query(insertMessageQuery, messageValues);
+  //     // Insere a mensagem na tabela de mensagens
+  //     const insertMessageQuery = `
+  //       INSERT INTO messages(id_remetente, id_destinatario, message, created_at, read)
+  //       VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
+  //       RETURNING *;
+  //     `;
+  //     const messageValues = [id_remetente, id_destinatario, message, read];
+  //     const messageResult = await this.databaseService.query(insertMessageQuery, messageValues);
 
-      // Finaliza a transação com sucesso
-      await this.databaseService.query('COMMIT');
+  //     // Finaliza a transação com sucesso
+  //     await this.databaseService.query('COMMIT');
 
-      return messageResult[0]; // Retorna a mensagem adicionada
-    } catch (error) {
-      // Reverte todas as operações se ocorrer algum erro
-      await this.databaseService.query('ROLLBACK');
-      throw new Error('Erro ao adicionar mensagem: ' + error.message);
-    }
-  }
-
-
-
-
-
-
-
-  // async findCardsPCP(entity_id: number, empresa_id: number) {
-  //   const query = `
-  //     -- Consulta atualizada para incluir todas as informações de modulo_esquadrias para cartões do usuário e seus afilhados, filtrando por status 'Vendido'
-  //     WITH CombinedCards AS (
-  //       SELECT c.*, me.*
-  //       FROM cards c
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE c.entity_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
-
-  //       UNION
-
-  //       SELECT c.*, me.*
-  //       FROM cards c
-  //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE ua.user_id = $1 AND c.empresa_id = $2 AND c.status = 'Vendido'
-  //     )
-  //     SELECT * FROM CombinedCards;
-  //   `;
-
-  //   const values = [entity_id, empresa_id];
-  //   return await this.databaseService.query(query, values);
+  //     return messageResult[0]; // Retorna a mensagem adicionada
+  //   } catch (error) {
+  //     // Reverte todas as operações se ocorrer algum erro
+  //     await this.databaseService.query('ROLLBACK');
+  //     throw new Error('Erro ao adicionar mensagem: ' + error.message);
+  //   }
   // }
+
+  
+
+
 
   async findCardsPCP(entity_id: number, empresa_id: number) {
     const query = `
@@ -879,22 +955,6 @@ export class CardService {
 
 
 
-  // Método para atualizar o column_id de um card
-  async updateCardColumn(cardId: number, columnId: number): Promise<any> {
-    const query = `
-    UPDATE cards
-    SET column_id = $2, updated_at = CURRENT_TIMESTAMP
-    WHERE card_id = $1
-    RETURNING *;
-  `;
-    const values = [cardId, columnId];
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0]; // Assume que a atualização retorna o card atualizado
-    } catch (error) {
-      throw new Error('Erro ao atualizar o column_id do card: ' + error.message);
-    }
-  }
 
 
 
@@ -962,75 +1022,6 @@ export class CardService {
     return await this.databaseService.query(upsertQuery, values);
   }
 
-
-  async updateCardStatus(id: number, status: string, columnId: number | null) {
-    const query = `
-      UPDATE cards
-      SET status = $2, column_id = COALESCE($3, column_id), status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE card_id = $1
-      RETURNING *;
-    `;
-    const values = [id, status, columnId];
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0];
-    } catch (error) {
-      throw new Error('Erro ao atualizar o status do card: ' + error.message);
-    }
-  }
-
-
-  async updateCardStatusVendaPerdida(id: number, status: string, motivo: string, columnId: number) {
-    const query = `
-      UPDATE cards
-      SET status = $2, motivo_venda_perdida = $3, column_id = $4, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE card_id = $1
-      RETURNING *;
-    `;
-    const values = [id, status, motivo, columnId];
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0];
-    } catch (error) {
-      throw new Error('Erro ao atualizar o status do card: ' + error.message);
-    }
-  }
-
-
-
-
-  // async updateCardArquivado(id: number, status: string, columnId: number) {
-  //   const query = `
-  //     UPDATE cards
-  //     SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-  //     WHERE card_id = $1
-  //     RETURNING *;
-  //   `;
-  //   const values = [id, status, columnId];
-  //   try {
-  //     const result = await this.databaseService.query(query, values);
-  //     return result[0];
-  //   } catch (error) {
-  //     throw new Error('Erro ao atualizar o status do card: ' + error.message);
-  //   }
-  // }
-
-  async updateCardArquivado(id: number, status: string, columnId: number) {
-    const query = `
-      UPDATE cards
-      SET status = $2, column_id = $3, status_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, block_column = true
-      WHERE card_id = $1
-      RETURNING *;
-    `;
-    const values = [id, status, columnId];
-
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0];
-    } catch (error) {
-      throw new Error('Erro ao atualizar o status do card: ' + error.message);
-    }
-  }
 
 
 
@@ -1171,35 +1162,7 @@ export class CardService {
 
 
 
-  async updateTarefa(taskId: number, completed: boolean, cardId: number) {
-    await this.databaseService.query('BEGIN');
-    try {
-      const query = `
-        UPDATE card_tasks
-        SET completed = $2,
-            complete_date = CASE WHEN $2 = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END
-        WHERE task_id = $1
-        RETURNING *;
-      `;
-      const taskValues = [taskId, completed];
-      const taskResult = await this.databaseService.query(query, taskValues);
 
-      if (completed) { // Only update the card if the task is completed
-        const updateCardQuery = `
-          UPDATE cards
-          SET updated_at = CURRENT_TIMESTAMP
-          WHERE card_id = $1;
-        `;
-        await this.databaseService.query(updateCardQuery, [cardId]);
-      }
-
-      await this.databaseService.query('COMMIT');
-      return taskResult[0];
-    } catch (error) {
-      await this.databaseService.query('ROLLBACK');
-      throw new Error('Erro ao atualizar a tarefa e o cartão: ' + error.message);
-    }
-  }
 
 
   async getCardTarefas(userId: number, cardId: number) {
@@ -1222,6 +1185,16 @@ export class CardService {
     await this.databaseService.query('BEGIN');
 
     try {
+
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(tarefaData.card_id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(tarefaData.card_id);
+      }
+
       // Primeiro, adiciona a nova tarefa
       const insertTaskQuery = `
         INSERT INTO card_tasks (user_id, card_id, task_type, description, due_date, completed, empresa_id )
@@ -1239,14 +1212,6 @@ export class CardService {
       ];
       const taskResult = await this.databaseService.query(insertTaskQuery, taskValues);
 
-      // Em seguida, atualiza o timestamp de updated_at no card associado
-      const updateCardQuery = `
-        UPDATE cards
-        SET updated_at = CURRENT_TIMESTAMP
-        WHERE card_id = $1;
-      `;
-      await this.databaseService.query(updateCardQuery, [tarefaData.card_id]);
-
       // Se todas as operações foram bem-sucedidas, confirma a transação
       await this.databaseService.query('COMMIT');
 
@@ -1261,22 +1226,6 @@ export class CardService {
 
 
 
-  async updatePotencialVenda(id: number, potencialVenda: number) {
-    const query = `
-      UPDATE cards
-      SET potencial_venda = $2, updated_at = CURRENT_TIMESTAMP
-      WHERE card_id = $1
-      RETURNING *;
-    `;
-    const values = [id, potencialVenda];
-    try {
-      const result = await this.databaseService.query(query, values);
-      return result[0];  // Retorna a linha atualizada
-    } catch (error) {
-      throw new Error('Erro ao atualizar o potencial de venda');
-    }
-  }
-
 
   async getCardHistory(cardId: number) {
     const query = `
@@ -1290,8 +1239,23 @@ export class CardService {
   }
 
 
+
+
+
+
+
   async addCardHistory(card_id: number, user_id: number, action_type: string, description: string, card_status: string, empresa_id: number) {
     try {
+
+
+      // Verifica o status do card
+      const statusIsDifferent = await this.isStatusDifferent(card_id);
+
+      // Se o status for diferente de "Vendido", "Perdido" ou "Arquivado", atualiza o campo updated_at
+      if (statusIsDifferent) {
+        await this.updateUpdatedAt(card_id);
+      }
+
       // Inicia uma transação
       await this.databaseService.query('BEGIN');
 
@@ -1304,14 +1268,6 @@ export class CardService {
       const historyValues = [card_id, user_id, action_type, description, card_status, empresa_id];
       const historyResult = await this.databaseService.query(insertHistoryQuery, historyValues);
 
-      // Atualiza o updated_at do card correspondente
-      const updateCardQuery = `
-        UPDATE cards
-        SET updated_at = CURRENT_TIMESTAMP
-        WHERE card_id = $1;
-      `;
-      await this.databaseService.query(updateCardQuery, [card_id]);
-
       // Finaliza a transação com sucesso
       await this.databaseService.query('COMMIT');
 
@@ -1322,6 +1278,7 @@ export class CardService {
       throw new Error('Erro ao adicionar histórico e atualizar o card: ' + error.message);
     }
   }
+
 
 
 
@@ -1366,6 +1323,23 @@ export class CardService {
     }
   }
 
+  // async create(
+  //   name: string,
+  //   state: string,
+  //   city: string,
+  //   fone: string,
+  //   email: string,
+  //   column_id: number,
+  //   entity_id: number,
+  //   empresa_id: number
+  // ) {
+  //   const status = ''; // Definindo status como uma string vazia
+  //   const query = 'INSERT INTO cards(name, state, city, fone, email, column_id, entity_id, empresa_id, status) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *';
+  //   const values = [name, state, city, fone, email, column_id, entity_id, empresa_id, status];
+  //   const result = await this.databaseService.query(query, values);
+  //   return result[0];
+  // }
+
   async create(
     name: string,
     state: string,
@@ -1376,106 +1350,59 @@ export class CardService {
     entity_id: number,
     empresa_id: number
   ) {
+    // Verificar se o usuário é premium
+    const userQuery = 'SELECT is_premium FROM users WHERE id = $1';
+    const userResult = await this.databaseService.query(userQuery, [entity_id]);
+    if (userResult.length === 0) {
+      throw new Error('Usuário não encontrado');
+    }
+    const isPremium = userResult[0].is_premium;
+    console.log(isPremium)
+  
+    if (!isPremium) {
+      // Verificar a quantidade de cards existentes para o usuário
+      const countQuery = 'SELECT COUNT(*) as card_count FROM cards WHERE entity_id = $1';
+      const countResult = await this.databaseService.query(countQuery, [entity_id]);
+      const cardCount = parseInt(countResult[0].card_count, 10);
+      console.log(cardCount)
+
+  
+      if (cardCount >= 100) {
+        throw new Error('Usuário não premium não pode criar mais de 100 cards');
+      }
+    }
+  
     const status = ''; // Definindo status como uma string vazia
     const query = 'INSERT INTO cards(name, state, city, fone, email, column_id, entity_id, empresa_id, status) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *';
     const values = [name, state, city, fone, email, column_id, entity_id, empresa_id, status];
     const result = await this.databaseService.query(query, values);
     return result[0];
   }
-
-
-  // async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number) {
-  //   const query = `
-  //     -- Consulta atualizada para incluir apenas nome_obra da tabela modulo_esquadrias
-  //     WITH CombinedCards AS (
-  //       SELECT c.*, me.nome_obra
-  //       FROM cards c
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE c.entity_id = $1 AND c.empresa_id = $2
-
-  //       UNION
-
-  //       SELECT c.*, me.nome_obra
-  //       FROM cards c
-  //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE ua.user_id = $1 AND c.empresa_id = $2
-
-  //       UNION
-
-  //       SELECT c.*, me.nome_obra
-  //       FROM cards c
-  //       INNER JOIN card_shareds cs ON cs.card_id = c.card_id
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
-  //     )
-  //     SELECT * FROM CombinedCards;
-  //   `;
-
-  //   const values = [entity_id, empresa_id];
-  //   return await this.databaseService.query(query, values);
-  // }
-
-  // 
-
-  // async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number, dataInicial: string, dataFinal: string) {
-  //   const query = `
-  //     WITH CombinedCards AS (
-  //       SELECT c.*, me.nome_obra, false AS compartilhamento
-  //       FROM cards c
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE c.entity_id = $1 AND c.empresa_id = $2
-  //       AND c.created_at BETWEEN $3 AND $4
-
-  //       UNION
-
-  //       SELECT c.*, me.nome_obra, false AS compartilhamento
-  //       FROM cards c
-  //       INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE ua.user_id = $1 AND c.empresa_id = $2
-  //       AND c.created_at BETWEEN $3 AND $4
-
-  //       UNION
-
-  //       SELECT c.*, me.nome_obra, true AS compartilhamento
-  //       FROM cards c
-  //       INNER JOIN card_shareds cs ON cs.card_id = c.card_id
-  //       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
-  //       WHERE cs.shared_user_id = $1 AND c.empresa_id = $2
-  //       AND c.created_at BETWEEN $3 AND $4
-  //     )
-  //     SELECT * FROM CombinedCards;
-  //   `;
-
-  //   const values = [entity_id, empresa_id, dataInicial, dataFinal];
-  //   return await this.databaseService.query(query, values);
-  // }
-
-
-
-  /// ------------- ORIGINAL ACIMA --------------------
+  
 
 
 
   async findCardsByEntityAndEmpresa(entity_id: number, empresa_id: number, dataInicial: string, dataFinal: string) {
     const query = `
       WITH CombinedCards AS (
-        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id
+        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id, c.origem, c.produto, me.nome_obra
         FROM cards c
+        LEFT JOIN modulo_esquadrias me ON c.card_id = me.card_id
         WHERE c.entity_id = $1 AND c.empresa_id = $2 AND c.created_at BETWEEN $3 AND $4
-  
+    
         UNION
-  
-        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id
+    
+        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id, c.origem, c.produto, me.nome_obra
         FROM cards c
+        LEFT JOIN modulo_esquadrias me ON c.card_id = me.card_id
         INNER JOIN user_afilhados ua ON ua.afilhado_id = c.entity_id
         WHERE ua.user_id = $1 AND c.empresa_id = $2 AND c.created_at BETWEEN $3 AND $4
-  
+    
         UNION
-  
-        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id
+    
+        SELECT c.card_id, c.city, c.state, c.cost_value, c.name, c.status, c.potencial_venda, c.updated_at, c.created_at, c.column_id, c.entity_id, c.status_date, c.etiqueta_id, c.origem, c.produto, me.nome_obra
         FROM cards c
+        LEFT JOIN modulo_esquadrias me ON c.card_id = me.card_id
         INNER JOIN card_shareds cs ON cs.card_id = c.card_id
         WHERE cs.shared_user_id = $1 AND c.empresa_id = $2 AND c.created_at BETWEEN $3 AND $4
       )
@@ -1488,163 +1415,6 @@ export class CardService {
 
 
 
-
-
-
-
-
-
-
-  // async update(
-  //   id: number,
-  //   name: string,
-  //   state: string,
-  //   city: string,
-  //   fone: string,
-  //   email: string,
-  //   column_id: number,
-  //   entity_id: number,
-  //   empresa_id: number,
-  //   document_number: string,
-  //   cost_value: number,
-  //   sale_value: number,
-  //   status: string,
-  //   origem: string,
-  //   produto: string
-  // ) {
-  //   // Consulta para obter o status atual do banco de dados
-  //   const statusCheckQuery = 'SELECT status FROM cards WHERE card_id = $1';
-  //   const statusCheckResult = await this.databaseService.query(statusCheckQuery, [id]);
-
-  //   if (statusCheckResult[0].status == status) {
-  //     const query = `
-  //       UPDATE cards
-  //       SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
-  //           document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP, origem = $13, produto = $14
-  //       WHERE card_id = $1
-  //       RETURNING *
-  //     `;
-  //     const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto];
-  //     const result = await this.databaseService.query(query, values);
-  //     return result;
-  //   } else {
-  //     const query = `
-  //       UPDATE cards
-  //       SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
-  //           document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP,
-  //           status_date = CURRENT_TIMESTAMP, origem = $13, produto = $14
-  //       WHERE card_id = $1
-  //       RETURNING *
-  //     `;
-  //     const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto];
-  //     const result = await this.databaseService.query(query, values);
-  //     return result;
-  //   }
-  // }
-
-
-
-  // async update(
-  //   id: number,
-  //   name: string,
-  //   state: string,
-  //   city: string,
-  //   fone: string,
-  //   email: string,
-  //   column_id: number,
-  //   entity_id: number,
-  //   empresa_id: number,
-  //   document_number: string,
-  //   cost_value: number,
-  //   sale_value: number,
-  //   status: string,
-  //   origem: string,
-  //   produto: string,
-  //   status_date: string | null
-  // ) {
-  //   // Consulta para obter o status atual do banco de dados
-  //   const statusCheckQuery = 'SELECT status FROM cards WHERE card_id = $1';
-  //   const statusCheckResult = await this.databaseService.query(statusCheckQuery, [id]);
-
-  //   if (statusCheckResult[0].status == status) {
-  //     const query = `
-  //       UPDATE cards
-  //       SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
-  //           document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP, 
-  //           status_date = $15, origem = $13, produto = $14
-  //       WHERE card_id = $1
-  //       RETURNING *
-  //     `;
-  //     const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date];
-  //     const result = await this.databaseService.query(query, values);
-  //     return result;
-  //   } else {
-  //     const query = `
-  //       UPDATE cards
-  //       SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
-  //           document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP,
-  //           status_date = $15, origem = $13, produto = $14
-  //       WHERE card_id = $1
-  //       RETURNING *
-  //     `;
-  //     const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date];
-  //     const result = await this.databaseService.query(query, values);
-  //     return result;
-  //   }
-  // }
-
-
-  async update(
-    id: number,
-    name: string,
-    state: string,
-    city: string,
-    fone: string,
-    email: string,
-    column_id: number,
-    entity_id: number,
-    empresa_id: number,
-    document_number: string,
-    cost_value: number,
-    sale_value: number,
-    status: string,
-    origem: string,
-    produto: string,
-    status_date: string | null,
-    second_document_number: string,
-    pedido_number: string,
-    etiqueta_id: number
-  ) {
-    // Consulta para obter o status atual do banco de dados
-    const statusCheckQuery = 'SELECT status FROM cards WHERE card_id = $1';
-    const statusCheckResult = await this.databaseService.query(statusCheckQuery, [id]);
-
-    if (statusCheckResult[0].status == status) {
-      const query = `
-            UPDATE cards
-            SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
-                document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP,
-                status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18
-            WHERE card_id = $1
-            RETURNING *
-        `;
-      const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
-      const result = await this.databaseService.query(query, values);
-      return result;
-    } else {
-      const query = `
-            UPDATE cards
-            SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
-                document_number = $9, cost_value = $10, sale_value = $11, status = $12, updated_at = CURRENT_TIMESTAMP,
-                status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18
-            WHERE card_id = $1
-            RETURNING *
-        `;
-      const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
-      const result = await this.databaseService.query(query, values);
-      return result;
-    }
-  }
 
 
 
