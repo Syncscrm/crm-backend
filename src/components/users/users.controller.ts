@@ -10,6 +10,53 @@ export class UsersController {
 
 
 
+
+
+
+// -------------------------------------------------------------
+// -------------------------------------------------------------
+// Endpoint para buscar as informações da empresa e listar no console
+// -------------------------------------------------------------
+// -------------------------------------------------------------
+@Post('send-email/:empresaId')
+async sendEmail(
+  @Param('empresaId') empresaId: number,
+  @Body() emailData: { to: string; subject: string; text: string }
+) {
+  console.log('controller', empresaId);
+  await this.usersService.sendEmail(empresaId, emailData);
+  return { message: 'Email sent successfully' };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   @Post('create')
 async create(@Body() body) {
   // Agora incluindo o avatar e empresa_id na extração do corpo da requisição
@@ -322,17 +369,35 @@ async updateColunaPedido(
   }
 
 
-  @Post('createCor')
-  async createCor(@Body() body) {
-    const { name, empresa_id, descricao } = body;
-    return await this.usersService.createCor(name, empresa_id, descricao);
-  }
+  // @Post('createCor')
+  // async createCor(@Body() body) {
+  //   const { name, empresa_id, descricao } = body;
+  //   return await this.usersService.createCor(name, empresa_id, descricao);
+  // }
 
-  @Put('updateCor/:id')
-  async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
-    const { name } = body;
-    return await this.usersService.updateCor(id, name);
-  }
+  // @Put('updateCor/:id')
+  // async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
+  //   const { name } = body;
+  //   return await this.usersService.updateCor(id, name);
+  // }
+
+
+
+
+  @Post('createCor')
+async createCor(@Body() body) {
+  const { name, empresa_id, descricao, color_code } = body;
+  return await this.usersService.createCor(name, empresa_id, descricao, color_code);
+}
+
+@Put('updateCor/:id')
+async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
+  const { name, color_code } = body;
+  return await this.usersService.updateCor(id, name, color_code);
+}
+
+
+
 
   @Delete('deleteCor/:id')
   async deleteCor(@Param('id', ParseIntPipe) id: number) {

@@ -3,6 +3,8 @@ import { DatabaseService } from '../../database/database.service.js';
 
 import { JwtService } from '@nestjs/jwt';
 
+import * as nodemailer from 'nodemailer';
+
 
 // import * as imaps from 'imap-simple';
 // import { simpleParser } from 'mailparser';
@@ -20,6 +22,65 @@ export class UsersService {
 
 
 
+  // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // Método para buscar informações da empresa e listar no console
+  // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  async sendEmail(empresaId: number, emailData: { to: string; subject: string; text: string }): Promise<void> {
+    console.log('service', empresaId);
+  
+    const query = `
+      SELECT email_sender_address, email_sender_name, email_smtp_server, email_smtp_port, 
+             email_smtp_user, email_smtp_password, email_smtp_security_protocol
+      FROM empresas
+      WHERE id = $1
+    `;
+    const result = await this.databaseService.query(query, [empresaId]);
+  
+    if (result.length > 0) {
+      const emailConfig = result[0];
+      console.log('Email Configuration:', emailConfig);
+  
+      const transporter = nodemailer.createTransport({
+        host: emailConfig.email_smtp_server,
+        port: emailConfig.email_smtp_port,
+        secure: emailConfig.email_smtp_security_protocol === 'SSL',
+        auth: {
+          user: emailConfig.email_smtp_user,
+          pass: emailConfig.email_smtp_password,
+        },
+      });
+  
+      const mailOptions = {
+        from: `"${emailConfig.email_sender_name}" <${emailConfig.email_sender_address}>`,
+        to: emailData.to, // Usar o destinatário recebido
+        subject: emailData.subject, // Usar o assunto recebido
+        text: emailData.text, // Usar o texto recebido
+      };
+  
+      await transporter.sendMail(mailOptions);
+    } else {
+      console.log(`Empresa com ID ${empresaId} não encontrada.`);
+    }
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   async updateColunaPedido(empresaId: number, pedidoColuna: string): Promise<any> {
     const query = 'UPDATE empresas SET pedido_coluna = $1 WHERE id = $2 RETURNING *';
@@ -28,9 +89,9 @@ export class UsersService {
     return result[0];
   }
 
-  
 
-  
+
+
   async create(
     userEmail: string, // E-mail do usuário administrador fazendo a requisição
     username: string,
@@ -47,31 +108,31 @@ export class UsersService {
     // Verificar se o número de usuários não excede o número de licenças
     const userCount = await this.countUsersByEmpresaId(empresa_id);
     const numeroDeLicencas = await this.getNumeroDeLicencas(empresa_id);
-  
+
     if (userCount >= numeroDeLicencas) {
       throw new Error('Número de licenças excedido. Não é possível criar novos usuários.');
     }
-  
+
     // Agora, proceda com a criação do novo usuário, incluindo o empresa_id
     const saltOrRounds = 10;
     // const hash = await bcrypt.hash(password, saltOrRounds);
     const hash = password;
-  
+
     // Ajuste a query para inserir o usuário, incluindo o empresa_id
     const userQuery = 'INSERT INTO users(username, password, email, fone, empresa_id, avatar) VALUES($1, $2, $3, $4, $5, $6) RETURNING id';
     const userValues = [username, hash, email, fone, empresa_id, avatar];
     const userResult = await this.databaseService.query(userQuery, userValues);
     const userId = userResult[0].id; // Supondo que id seja retornado
-  
+
     // Inserindo o endereço usando o userId
     const addressQuery = 'INSERT INTO addresses(user_id, address, city, state, cep, empresa_id) VALUES($1, $2, $3, $4, $5, $6)';
     const addressValues = [userId, address, city, state, cep, empresa_id];
     await this.databaseService.query(addressQuery, addressValues);
-  
+
     return userResult[0];
   }
 
-  
+
 
 
 
@@ -96,15 +157,15 @@ export class UsersService {
   ): Promise<any> {
     console.log('Atualizando usuário com ID:', userId);
     console.log('Dados recebidos para atualização:', updates);
-  
+
     const userFields = ['username', 'fone', 'avatar', 'is_active', 'meta_user', 'meta_grupo', 'entidade', 'access_level', 'user_type'];
     const addressFields = ['address', 'city', 'state', 'cep'];
-  
+
     // Atualização da tabela de usuários
     const userUpdates = userFields.filter(field => updates[field] !== undefined);
     const userQueryParts = userUpdates.map((field, index) => `${field} = $${index + 1}`);
     const userQueryValues = userUpdates.map(field => updates[field]);
-  
+
     if (userQueryParts.length > 0) {
       const query = `UPDATE users SET ${userQueryParts.join(', ')} WHERE id = $${userQueryParts.length + 1}`;
       userQueryValues.push(userId);
@@ -112,17 +173,17 @@ export class UsersService {
       console.log('Valores de atualização de usuário:', userQueryValues);
       await this.databaseService.query(query, userQueryValues);
     }
-  
+
     // Verificar se existe um endereço associado ao usuário
     const addressCheckQuery = 'SELECT COUNT(*) FROM addresses WHERE user_id = $1';
     const addressCheckResult = await this.databaseService.query(addressCheckQuery, [userId]);
     const addressExists = parseInt(addressCheckResult[0].count, 10) > 0;
-  
+
     // Atualização ou criação da tabela de endereços
     const addressUpdates = addressFields.filter(field => updates[field] !== undefined);
     const addressQueryParts = addressUpdates.map((field, index) => `${field} = $${index + 1}`);
     const addressQueryValues = addressUpdates.map(field => updates[field]);
-  
+
     if (addressQueryParts.length > 0) {
       if (addressExists) {
         addressQueryValues.push(userId);
@@ -139,11 +200,11 @@ export class UsersService {
         await this.databaseService.query(addressQuery, addressQueryValues);
       }
     }
-  
+
     return { message: "Usuário e endereço atualizados com sucesso." };
   }
-  
-  
+
+
 
 
   async addColumnPermissionToUser(userId: number, columnId: number, canEdit: boolean, empresaId: number): Promise<void> {
@@ -154,7 +215,7 @@ export class UsersService {
     `;
     await this.databaseService.query(query, [userId, columnId, canEdit, empresaId]);
   }
-  
+
   async removeColumnPermissionFromUser(userId: number, columnId: number, empresaId: number): Promise<void> {
     const query = `
       DELETE FROM user_permissions WHERE user_id = $1 AND column_id = $2 AND empresa_id = $3
@@ -162,7 +223,7 @@ export class UsersService {
     await this.databaseService.query(query, [userId, columnId, empresaId]);
   }
 
-  
+
 
 
   async getUserColumnPermissions(userId: number, empresaId: number): Promise<{ columnId: number, canEdit: boolean }[]> {
@@ -180,7 +241,7 @@ export class UsersService {
   //   `;
   //   await this.databaseService.query(query, [userId, columnId, canEdit, empresaId]);
   // }
-  
+
 
   // async addColumnPermissionToUser(userId: number, columnId: number, canEdit: boolean, empresaId: number): Promise<void> {
   //   const query = `
@@ -219,12 +280,12 @@ export class UsersService {
     const query = 'INSERT INTO user_afilhados (user_id, afilhado_id, empresa_id) VALUES ($1, $2, $3)';
     await this.databaseService.query(query, [userId, afilhadoId, empresaId]);
   }
-  
+
   async removeAfilhadoFromUser(userId: number, afilhadoId: number, empresaId: number): Promise<void> {
     const query = 'DELETE FROM user_afilhados WHERE user_id = $1 AND afilhado_id = $2 AND empresa_id = $3';
     await this.databaseService.query(query, [userId, afilhadoId, empresaId]);
   }
-  
+
 
   async changeUserPassword(userId: number, newPassword: string): Promise<void> {
     // Atualiza diretamente a senha no banco de dados
@@ -384,9 +445,9 @@ export class UsersService {
     await this.createOrigem('Parceiro', companyId, 'Descrição da origem 5');
 
     // Adicionar cores
-    await this.createCor('Branco', companyId, 'Descrição da cor 1');
-    await this.createCor('Preto', companyId, 'Descrição da cor 2');
-    await this.createCor('Amadeirado', companyId, 'Descrição da cor 3');
+    await this.createCor('Branco', companyId, 'Descrição da cor 1', '#FFFFFF');
+    await this.createCor('Preto', companyId, 'Descrição da cor 2', '#000000');
+    await this.createCor('Amadeirado', companyId, 'Descrição da cor 3', '#8B4513');
 
     await this.createDefaultCards(companyId, userId);
 
@@ -396,33 +457,33 @@ export class UsersService {
 
 
   // Adicione este método à classe UsersService
-private async createDefaultCards(companyId: number, userId: number) {
-  const columns = await this.getColumnsNews(companyId);
-  const defaultCards = [
-    { name: 'Card de Exemplo 1', column_id: columns[0].id, entity_id: userId, empresa_id: companyId },
-    { name: 'Card de Exemplo 2', column_id: columns[1].id, entity_id: userId, empresa_id: companyId },
-    // Adicionar mais cards de exemplo conforme necessário
-  ];
+  private async createDefaultCards(companyId: number, userId: number) {
+    const columns = await this.getColumnsNews(companyId);
+    const defaultCards = [
+      { name: 'Card de Exemplo 1', column_id: columns[0].id, entity_id: userId, empresa_id: companyId },
+      { name: 'Card de Exemplo 2', column_id: columns[1].id, entity_id: userId, empresa_id: companyId },
+      // Adicionar mais cards de exemplo conforme necessário
+    ];
 
-  for (const card of defaultCards) {
-    await this.createCard(card.name, card.column_id, card.entity_id, card.empresa_id);
+    for (const card of defaultCards) {
+      await this.createCard(card.name, card.column_id, card.entity_id, card.empresa_id);
+    }
   }
-}
 
-// Adicione este método à classe UsersService
-private async createCard(name: string, column_id: number, entity_id: number, empresa_id: number) {
-  const query = 'INSERT INTO cards(name, column_id, entity_id, empresa_id) VALUES($1, $2, $3, $4) RETURNING *';
-  const values = [name, column_id, entity_id, empresa_id];
-  const result = await this.databaseService.query(query, values);
-  return result[0];
-}
+  // Adicione este método à classe UsersService
+  private async createCard(name: string, column_id: number, entity_id: number, empresa_id: number) {
+    const query = 'INSERT INTO cards(name, column_id, entity_id, empresa_id) VALUES($1, $2, $3, $4) RETURNING *';
+    const values = [name, column_id, entity_id, empresa_id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
 
-// Adicione este método à classe UsersService
-private async getColumnsNews(companyId: number) {
-  const query = 'SELECT id FROM process_columns WHERE empresa_id = $1 ORDER BY display_order';
-  const result = await this.databaseService.query(query, [companyId]);
-  return result;
-}
+  // Adicione este método à classe UsersService
+  private async getColumnsNews(companyId: number) {
+    const query = 'SELECT id FROM process_columns WHERE empresa_id = $1 ORDER BY display_order';
+    const result = await this.databaseService.query(query, [companyId]);
+    return result;
+  }
 
 
 
@@ -762,6 +823,8 @@ private async getColumnsNews(companyId: number) {
       pedidoData.valor_externas_esquadrias, pedidoData.desconto_externas, pedidoData.valor_outros_esquadrias, pedidoData.desconto_outros
     ];
 
+
+
     return await this.databaseService.query(query, values);
   }
 
@@ -921,6 +984,19 @@ private async getColumnsNews(companyId: number) {
 
 
 
+  async createCor(name: string, empresa_id: number, descricao: string, color_code: string) {
+    const query = 'INSERT INTO cores(name, empresa_id, descricao, color_code) VALUES($1, $2, $3, $4) RETURNING *';
+    const values = [name, empresa_id, descricao, color_code];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  async updateCor(id: number, name: string, color_code: string) {
+    const query = 'UPDATE cores SET name = $1, color_code = $2 WHERE id = $3 RETURNING *';
+    const values = [name, color_code, id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
 
 
 
@@ -930,19 +1006,19 @@ private async getColumnsNews(companyId: number) {
   }
 
 
-  async createCor(name: string, empresa_id: number, descricao: string) {
-    const query = 'INSERT INTO cores(name, empresa_id, descricao) VALUES($1, $2, $3) RETURNING *';
-    const values = [name, empresa_id, descricao];
-    const result = await this.databaseService.query(query, values);
-    return result[0];
-  }
+  // async createCor(name: string, empresa_id: number, descricao: string) {
+  //   const query = 'INSERT INTO cores(name, empresa_id, descricao) VALUES($1, $2, $3) RETURNING *';
+  //   const values = [name, empresa_id, descricao];
+  //   const result = await this.databaseService.query(query, values);
+  //   return result[0];
+  // }
 
-  async updateCor(id: number, name: string) {
-    const query = 'UPDATE cores SET name = $1 WHERE id = $2 RETURNING *';
-    const values = [name, id];
-    const result = await this.databaseService.query(query, values);
-    return result[0];
-  }
+  // async updateCor(id: number, name: string) {
+  //   const query = 'UPDATE cores SET name = $1 WHERE id = $2 RETURNING *';
+  //   const values = [name, id];
+  //   const result = await this.databaseService.query(query, values);
+  //   return result[0];
+  // }
 
   async deleteCor(id: number) {
     const query = 'DELETE FROM cores WHERE id = $1';
