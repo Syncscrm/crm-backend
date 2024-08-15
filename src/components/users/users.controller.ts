@@ -9,7 +9,15 @@ export class UsersController {
 
 
 
-
+  @Get('pedido-status')
+  async getPedidoStatus(@Query('cardId') cardId: number) {
+    try {
+      const pedidoStatus = await this.usersService.getPedidoStatus(cardId);
+      return pedidoStatus;
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+    }
+  }
 
 
 

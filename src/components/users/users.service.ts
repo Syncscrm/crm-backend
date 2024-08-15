@@ -19,6 +19,39 @@ export class UsersService {
 
 
 
+  async getPedidoStatus(cardId: number): Promise<any> {
+    // Consulta para buscar os dados do card, incluindo o nome da empresa e os dados do cliente
+    const cardQuery = `
+      SELECT c.*, e.nome as empresa_nome 
+      FROM cards c
+      JOIN empresas e ON c.empresa_id = e.id
+      WHERE c.card_id = $1
+    `;
+    const cardResult = await this.databaseService.query(cardQuery, [cardId]);
+  
+    if (cardResult.length === 0) {
+      throw new Error('Pedido não encontrado.');
+    }
+  
+    const cardInfo = cardResult[0];
+    const columnsQuery = `
+      SELECT *
+      FROM process_columns
+      WHERE empresa_id = $1
+      ORDER BY display_order
+    `;
+    const columns = await this.databaseService.query(columnsQuery, [cardInfo.empresa_id]);
+  
+    return {
+      card: cardInfo,
+      columns: columns,
+    };
+  }
+  
+
+  
+  
+
 
 
 
@@ -29,7 +62,7 @@ export class UsersService {
   // -------------------------------------------------------------
   async sendEmail(empresaId: number, emailData: { to: string; subject: string; text: string }): Promise<void> {
     console.log('service', empresaId);
-  
+
     const query = `
       SELECT email_sender_address, email_sender_name, email_smtp_server, email_smtp_port, 
              email_smtp_user, email_smtp_password, email_smtp_security_protocol
@@ -37,11 +70,11 @@ export class UsersService {
       WHERE id = $1
     `;
     const result = await this.databaseService.query(query, [empresaId]);
-  
+
     if (result.length > 0) {
       const emailConfig = result[0];
       console.log('Email Configuration:', emailConfig);
-  
+
       const transporter = nodemailer.createTransport({
         host: emailConfig.email_smtp_server,
         port: emailConfig.email_smtp_port,
@@ -51,20 +84,20 @@ export class UsersService {
           pass: emailConfig.email_smtp_password,
         },
       });
-  
+
       const mailOptions = {
         from: `"${emailConfig.email_sender_name}" <${emailConfig.email_sender_address}>`,
         to: emailData.to, // Usar o destinatário recebido
         subject: emailData.subject, // Usar o assunto recebido
         text: emailData.text, // Usar o texto recebido
       };
-  
+
       await transporter.sendMail(mailOptions);
     } else {
       console.log(`Empresa com ID ${empresaId} não encontrada.`);
     }
   }
-  
+
 
 
 
