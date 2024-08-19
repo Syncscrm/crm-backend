@@ -9,6 +9,38 @@ export class UsersController {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
   @Get('pedido-status')
   async getPedidoStatus(@Query('cardId') cardId: number) {
     try {
@@ -432,9 +464,10 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
 
   @Post('createColuna')
   async createColuna(@Body() body) {
-    const { name, empresa_id, display_order, description } = body;
-    return await this.usersService.createColuna(name, empresa_id, display_order, description);
+    const { name, empresa_id, display_order, description, cliente_pode_ver } = body; // Incluir cliente_pode_ver
+    return await this.usersService.createColuna(name, empresa_id, display_order, description, cliente_pode_ver);
   }
+  
 
   @Post('createProduto')
   async createProduto(@Body() body) {
@@ -497,9 +530,10 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
 
   @Put('updateColuna/:id')
   async updateColuna(@Param('id', ParseIntPipe) id: number, @Body() body) {
-    const { name, display_order, description, setor } = body;
-    return await this.usersService.updateColuna(id, name, display_order, description, setor);
+    const { name, display_order, description, setor, cliente_pode_ver } = body; // Incluir cliente_pode_ver
+    return await this.usersService.updateColuna(id, name, display_order, description, setor, cliente_pode_ver);
   }
+  
 
   @Delete('deleteColuna/:id')
   async deleteColuna(@Param('id', ParseIntPipe) id: number) {

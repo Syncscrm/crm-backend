@@ -5,10 +5,6 @@ import { JwtService } from '@nestjs/jwt';
 
 import * as nodemailer from 'nodemailer';
 
-
-// import * as imaps from 'imap-simple';
-// import { simpleParser } from 'mailparser';
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -18,6 +14,45 @@ export class UsersService {
 
 
 
+
+
+
+
+
+  
+
+
+
+
+  // async getPedidoStatus(cardId: number): Promise<any> {
+  //   // Consulta para buscar os dados do card, incluindo o nome da empresa e os dados do cliente
+  //   const cardQuery = `
+  //     SELECT c.*, e.nome as empresa_nome 
+  //     FROM cards c
+  //     JOIN empresas e ON c.empresa_id = e.id
+  //     WHERE c.card_id = $1
+  //   `;
+  //   const cardResult = await this.databaseService.query(cardQuery, [cardId]);
+  
+  //   if (cardResult.length === 0) {
+  //     throw new Error('Pedido não encontrado.');
+  //   }
+  
+  //   const cardInfo = cardResult[0];
+  //   const columnsQuery = `
+  //     SELECT *
+  //     FROM process_columns
+  //     WHERE empresa_id = $1
+  //     ORDER BY display_order
+  //   `;
+  //   const columns = await this.databaseService.query(columnsQuery, [cardInfo.empresa_id]);
+  
+  //   return {
+  //     card: cardInfo,
+  //     columns: columns,
+  //   };
+  // }
+  
 
   async getPedidoStatus(cardId: number): Promise<any> {
     // Consulta para buscar os dados do card, incluindo o nome da empresa e os dados do cliente
@@ -34,10 +69,12 @@ export class UsersService {
     }
   
     const cardInfo = cardResult[0];
+    
+    // Consulta para buscar apenas as colunas onde cliente_pode_ver é true
     const columnsQuery = `
       SELECT *
       FROM process_columns
-      WHERE empresa_id = $1
+      WHERE empresa_id = $1 AND cliente_pode_ver = true
       ORDER BY display_order
     `;
     const columns = await this.databaseService.query(columnsQuery, [cardInfo.empresa_id]);
@@ -1082,12 +1119,16 @@ export class UsersService {
     return result[0];
   }
 
-  async createColuna(name: string, empresa_id: number, display_order: number, description: string) {
-    const query = 'INSERT INTO process_columns(name, empresa_id, display_order, description) VALUES($1, $2, $3, $4) RETURNING *';
-    const values = [name, empresa_id, display_order, description];
+  async createColuna(name: string, empresa_id: number, display_order: number, description: string, cliente_pode_ver: boolean) {
+    const query = `
+      INSERT INTO process_columns(name, empresa_id, display_order, description, cliente_pode_ver) 
+      VALUES($1, $2, $3, $4, $5) RETURNING *;
+    `;
+    const values = [name, empresa_id, display_order, description, cliente_pode_ver];
     const result = await this.databaseService.query(query, values);
     return result[0];
   }
+  
 
   async createProduto(name: string, empresa_id: number, descricao: string) {
     const query = 'INSERT INTO produtos(name, empresa_id, descricao) VALUES($1, $2, $3) RETURNING *';
@@ -1173,12 +1214,18 @@ export class UsersService {
   }
 
 
-  async updateColuna(id: number, name: string, display_order: number, description: string, setor: string) {
-    const query = 'UPDATE process_columns SET name = $1, display_order = $2, description = $3, setor = $4 WHERE id = $5 RETURNING *';
-    const values = [name, display_order, description, setor, id];
+  async updateColuna(id: number, name: string, display_order: number, description: string, setor: string, cliente_pode_ver: boolean) {
+    const query = `
+      UPDATE process_columns 
+      SET name = $1, display_order = $2, description = $3, setor = $4, cliente_pode_ver = $5 
+      WHERE id = $6 
+      RETURNING *;
+    `;
+    const values = [name, display_order, description, setor, cliente_pode_ver, id];
     const result = await this.databaseService.query(query, values);
     return result[0];
   }
+  
 
 
   async updateProduto(id: number, name: string) {

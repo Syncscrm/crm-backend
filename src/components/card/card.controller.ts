@@ -9,8 +9,21 @@ export class CardController {
 
 
 
+  @Get('participantes/search')
+  async searchClient(@Query('cpf') cpf: string) {
+    return await this.cardService.searchClientByCpf(cpf);
+  }
 
-// src/components/processColumns/processColumns.controller.ts
+
+  @Post('participantes/check-and-save')
+  async checkAndSaveParticipante(@Body() body) {
+    const { name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf } = body;
+    return await this.cardService.checkAndSaveParticipante(name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf);
+  }
+  
+  
+
+
 @Post('add-messenger')
 async addMessage(@Body() body) {
   const { id_remetente, id_destinatario, message, read, empresa_id } = body; // Adiciona empresa_id aqui
@@ -45,20 +58,6 @@ async addMessage(@Body() body) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   @Get('find-by-id/:cardId')
   async getCardById(@Param('cardId', ParseIntPipe) cardId: number) {
     return await this.cardService.findCardById(cardId);
@@ -77,13 +76,6 @@ async addMessage(@Body() body) {
   }
 
 
-  // @Put(':anexoId/toggle-privado')
-  // async togglePrivado(
-  //   @Param('anexoId', ParseIntPipe) anexoId: number,
-  //   @Body('privado') privado: boolean
-  // ) {
-  //   return await this.cardService.togglePrivado(anexoId, privado);
-  // }
 
   @Put(':anexoId/toggle-privado')
   async togglePrivado(
@@ -103,18 +95,7 @@ async addMessage(@Body() body) {
     return anexos;
   }
 
-  // @Post(':cardId/add-anexo')
-  // async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
-  //   const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo } = body;
-  //   console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo });
-  //   return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo);
-  // }
-  // @Post(':cardId/add-anexo')
-  // async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
-  //   const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor } = body;
-  //   console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor });
-  //   return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor);
-  // }
+
 
   @Post(':cardId/add-anexo')
 async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
@@ -172,9 +153,8 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
 
 
 
-  // Endpoint para excluir registros em cards pelo card_id
 
-  // src/components/processColumns/processColumns.controller.ts
+
   @Delete(':cardId/delete-all-anexos')
   async deleteAllAnexosByCardId(@Param('cardId', ParseIntPipe) cardId: number) {
     return await this.cardService.deleteAllAnexosByCardId(cardId);
@@ -211,40 +191,6 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
   async deleteModuloEsquadrias(@Param('cardId', ParseIntPipe) cardId: number) {
     return await this.cardService.deleteModuloEsquadrias(cardId);
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // @Post('/enviar')
-  // async enviarMensagem(@Body() body: { numero: string; contato: string; mensagem: string }): Promise<string> {
-  //   const { numero, contato, mensagem } = body;
-
-  //   console.log('controller', numero, contato, mensagem)
-  //   await this.cardService.enviarMensagemParaBotConversa(numero, contato, mensagem);
-  //   return 'Mensagem enviada com sucesso!';
-  // }
 
   @Post('enviarMensagemParaBotConversa')
   async enviarMensagemParaBotConversa(
@@ -568,16 +514,13 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
 
   @Post('create')
   async create(@Body() body) {
-    //console.log('%%%%%%% Controller Card')
+
 
     const { name, state, city, fone, email, column_id, entity_id, empresa_id } = body;
     return await this.cardService.create(name, state, city, fone, email, column_id, entity_id, empresa_id);
   }
 
-  // @Get('find/:entityId/:empresaId')
-  // async findCards(@Param('entityId', ParseIntPipe) entityId: number, @Param('empresaId', ParseIntPipe) empresaId: number) {
-  //   return await this.cardService.findCardsByEntityAndEmpresa(entityId, empresaId);
-  // }
+
 
   @Get('find/:entityId/:empresaId')
   async findCards(
@@ -592,17 +535,12 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
 
 
 
-  // @Post('update')
-  // async update(@Body() body) {
-  //   const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto } = body;
-  //   return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto);
-  // }
 
 
   @Post('update')
   async update(@Body() body) {
-    const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id } = body;
-    return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id);
+    const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco  } = body;
+    return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco );
   }
 
 
@@ -611,7 +549,7 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
   async getTotalSales(
     @Param('entityId', ParseIntPipe) entityId: number
   ) {
-    //console.log('%%%%%%% Controller Card')
+
     return await this.cardService.getTotalSales(entityId);
   }
 
@@ -619,7 +557,7 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
   async getTotalSalesFromAfilhados(
     @Param('entityId', ParseIntPipe) entityId: number
   ) {
-    //console.log('Controller - Total de vendas dos afilhados para o usuário', entityId);
+
     return await this.cardService.getTotalSalesFromAfilhados(entityId);
   }
 

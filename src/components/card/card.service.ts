@@ -4,14 +4,91 @@ import { DatabaseService } from '../../database/database.service';
 
 import axios from 'axios';
 
-import { ref, deleteObject } from "firebase/storage";
-
-import { storage } from '../../config/firebase'
-
-
 @Injectable()
 export class CardService {
   constructor(private databaseService: DatabaseService) { }
+
+
+
+
+
+  async searchClientByCpf(cpf: string) {
+    const query = `
+      SELECT * FROM participantes WHERE cpf = $1;
+    `;
+    const result = await this.databaseService.query(query, [cpf]);
+
+    if (result.length > 0) {
+      return { success: true, data: result[0] };
+    } else {
+      return { success: false, message: 'Cliente não encontrado.' };
+    }
+  }
+
+
+  async checkAndSaveParticipante(
+    name: string,
+    email: string,
+    telefone: string,
+    endereco: string,
+    tipo: string,
+    state: string,
+    city: string,
+    empresa_id: number,
+    entity_id: number,
+    cpf: string,
+  ) {
+    // Verifica se o cliente já existe pelo CPF/CNPJ
+    const existingQuery = `
+      SELECT * FROM participantes WHERE cpf = $1;
+    `;
+    const existingResult = await this.databaseService.query(existingQuery, [cpf]);
+  
+    if (existingResult.length > 0) {
+      // Se o cliente já existir, atualiza os dados
+      const updateQuery = `
+        UPDATE participantes
+        SET name = $2, email = $3, telefone = $4, endereco = $5, tipo = $6, state = $7, city = $8, empresa_id = $9, entity_id = $10
+        WHERE cpf = $1
+        RETURNING *;
+      `;
+      const updateValues = [cpf, name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id];
+      const updateResult = await this.databaseService.query(updateQuery, updateValues);
+  
+      return { success: true, message: 'Cliente atualizado com sucesso.', data: updateResult[0] };
+    }
+  
+    // Se o cliente não existir, insere um novo registro
+    const insertQuery = `
+      INSERT INTO participantes (name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *;
+    `;
+    const insertValues = [name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf];
+    const insertResult = await this.databaseService.query(insertQuery, insertValues);
+  
+    return { success: true, message: 'Cliente criado com sucesso.', data: insertResult[0] };
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -64,14 +141,16 @@ export class CardService {
     status_date: string | null,
     second_document_number: string,
     pedido_number: string,
-    etiqueta_id: number
+    etiqueta_id: number,
+    cpf: string,
+    endereco: string
   ) {
 
     const query = `
       UPDATE cards
       SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
           document_number = $9, cost_value = $10, sale_value = $11, status = $12, 
-          status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18
+          status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18, cpf = $19, endereco = $20
       WHERE card_id = $1
       RETURNING *
     `;
@@ -94,7 +173,7 @@ export class CardService {
     }
 
 
-    const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id];
+    const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco];
     const result = await this.databaseService.query(query, values);
     return result;
   }
@@ -449,17 +528,6 @@ export class CardService {
     }
   }
 
-
-  // async getAnexosByCardId(cardId: number) {
-  //   const query = `
-  //     SELECT * FROM anexos
-  //     WHERE card_id = $1;
-  //   `;
-  //   const values = [cardId];
-  //   const result = await this.databaseService.query(query, values);
-  //   return result;  // Retorna todos os anexos do card
-  // }
-
   async getAnexosByCardId(cardId: number) {
     const query = `
       SELECT * FROM anexos
@@ -573,9 +641,7 @@ export class CardService {
   async deleteCardHistory(cardId: number) {
     const deleteQuery = `DELETE FROM card_history WHERE card_id = $1 RETURNING *;`;
     const result = await this.databaseService.query(deleteQuery, [cardId]);
-    // if (result.length === 0) {
-    //   throw new Error('Nenhum histórico encontrado para o card_id fornecido.');
-    // }
+
     return result; // Retorna os registros excluídos
   }
 
@@ -583,9 +649,7 @@ export class CardService {
   async deleteCardTasks(cardId: number) {
     const deleteQuery = `DELETE FROM card_tasks WHERE card_id = $1 RETURNING *;`;
     const result = await this.databaseService.query(deleteQuery, [cardId]);
-    // if (result.length === 0) {
-    //   throw new Error('Nenhuma tarefa encontrada para o card_id fornecido.');
-    // }
+
     return result; // Retorna os registros excluídos
   }
 
@@ -593,9 +657,7 @@ export class CardService {
   async deleteCardShareds(cardId: number) {
     const deleteQuery = `DELETE FROM card_shareds WHERE card_id = $1 RETURNING *;`;
     const result = await this.databaseService.query(deleteQuery, [cardId]);
-    // if (result.length === 0) {
-    //   throw new Error('Nenhum compartilhamento encontrado para o card_id fornecido.');
-    // }
+
     return result; // Retorna os registros excluídos
   }
 
@@ -603,9 +665,7 @@ export class CardService {
   async deleteModuloEsquadrias(cardId: number) {
     const deleteQuery = `DELETE FROM modulo_esquadrias WHERE card_id = $1 RETURNING *;`;
     const result = await this.databaseService.query(deleteQuery, [cardId]);
-    // if (result.length === 0) {
-    //   throw new Error('Nenhum módulo de esquadrias encontrado para o card_id fornecido.');
-    // }
+
     return result; // Retorna os registros excluídos
   }
 
@@ -784,32 +844,6 @@ export class CardService {
     const result = await this.databaseService.query(query, values);
     return result;
   }
-
-
-  // async addMessage(id_remetente: number, id_destinatario: number, message: string, read: boolean) {
-  //   try {
-  //     // Inicia uma transação
-  //     await this.databaseService.query('BEGIN');
-
-  //     // Insere a mensagem na tabela de mensagens
-  //     const insertMessageQuery = `
-  //       INSERT INTO messages(id_remetente, id_destinatario, message, created_at, read)
-  //       VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
-  //       RETURNING *;
-  //     `;
-  //     const messageValues = [id_remetente, id_destinatario, message, read];
-  //     const messageResult = await this.databaseService.query(insertMessageQuery, messageValues);
-
-  //     // Finaliza a transação com sucesso
-  //     await this.databaseService.query('COMMIT');
-
-  //     return messageResult[0]; // Retorna a mensagem adicionada
-  //   } catch (error) {
-  //     // Reverte todas as operações se ocorrer algum erro
-  //     await this.databaseService.query('ROLLBACK');
-  //     throw new Error('Erro ao adicionar mensagem: ' + error.message);
-  //   }
-  // }
 
   
 
@@ -1323,22 +1357,7 @@ export class CardService {
     }
   }
 
-  // async create(
-  //   name: string,
-  //   state: string,
-  //   city: string,
-  //   fone: string,
-  //   email: string,
-  //   column_id: number,
-  //   entity_id: number,
-  //   empresa_id: number
-  // ) {
-  //   const status = ''; // Definindo status como uma string vazia
-  //   const query = 'INSERT INTO cards(name, state, city, fone, email, column_id, entity_id, empresa_id, status) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *';
-  //   const values = [name, state, city, fone, email, column_id, entity_id, empresa_id, status];
-  //   const result = await this.databaseService.query(query, values);
-  //   return result[0];
-  // }
+
 
   async create(
     name: string,
