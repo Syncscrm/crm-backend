@@ -9,10 +9,59 @@ export class CardController {
 
 
 
+  // Novo endpoint para buscar participantes com o mesmo entity_id e tipo Parceiro
+@Get('participantes/parceiros/:entityId')
+async getParceirosByEntityId(
+  @Param('entityId', ParseIntPipe) entityId: number,
+) {
+  return await this.cardService.getParceirosByEntityId(entityId);
+}
+
+
+
+
   @Get('participantes/search')
   async searchClient(@Query('cpf') cpf: string) {
+
+
+
     return await this.cardService.searchClientByCpf(cpf);
   }
+  
+
+  // Buscar todos os participantes de acordo com a empresa
+  @Get('participantes/:empresaId')
+  async getAllParticipantsByEmpresa(@Param('empresaId', ParseIntPipe) empresaId: number) {
+    return await this.cardService.getAllParticipantsByEmpresa(empresaId);
+  }
+
+
+  // Criar um novo participante
+  @Post('participantes/create')
+  async createParticipant(@Body() body) {
+    const { name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf } = body;
+    return await this.cardService.createParticipant(name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf);
+  }
+
+  // Atualizar um participante existente
+  @Put('participantes/update/:id')
+  async updateParticipant(@Param('id', ParseIntPipe) id: number, @Body() body) {
+    const { name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf } = body;
+    return await this.cardService.updateParticipant(id, name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf);
+  }
+
+  // Excluir um participante
+  @Delete('participantes/delete/:id')
+  async deleteParticipant(@Param('id', ParseIntPipe) id: number) {
+    return await this.cardService.deleteParticipant(id);
+  }
+
+
+
+
+
+
+
 
 
   @Post('participantes/check-and-save')
@@ -20,15 +69,15 @@ export class CardController {
     const { name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf } = body;
     return await this.cardService.checkAndSaveParticipante(name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf);
   }
-  
-  
 
 
-@Post('add-messenger')
-async addMessage(@Body() body) {
-  const { id_remetente, id_destinatario, message, read, empresa_id } = body; // Adiciona empresa_id aqui
-  return await this.cardService.addMessage(id_remetente, id_destinatario, message, read, empresa_id); // Passa empresa_id para o serviço
-}
+
+
+  @Post('add-messenger')
+  async addMessage(@Body() body) {
+    const { id_remetente, id_destinatario, message, read, empresa_id } = body; // Adiciona empresa_id aqui
+    return await this.cardService.addMessage(id_remetente, id_destinatario, message, read, empresa_id); // Passa empresa_id para o serviço
+  }
 
 
 
@@ -42,9 +91,6 @@ async addMessage(@Body() body) {
     @Query('empresaId', ParseIntPipe) empresaId: number
   ) {
     const { searchType, searchTerm } = query;
-
-    console.log('searchType:', searchType);  // Adicione este log
-    console.log('searchTerm:', searchTerm);  // Adicione este log
 
     return await this.cardService.searchCards({
       searchType,
@@ -91,32 +137,29 @@ async addMessage(@Body() body) {
   @Get(':cardId/anexos')
   async getAnexosByCardId(@Param('cardId', ParseIntPipe) cardId: number) {
     const anexos = await this.cardService.getAnexosByCardId(cardId);
-    console.log("Anexos encontrados:", anexos);
+
     return anexos;
   }
 
 
 
   @Post(':cardId/add-anexo')
-async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
-  const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id } = body;
-  console.log("Recebendo anexo:", { cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id });
-  return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id);
-}
+  async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
+    const { empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id } = body;
+    return await this.cardService.addAnexo(cardId, empresa_id, url, nome_arquivo, tamanho, tipo_arquivo, comment, setor, user_id);
+  }
 
 
 
   @Delete(':anexoId/delete-anexo')
   async deleteAnexo(@Param('anexoId', ParseIntPipe) anexoId: number) {
     const deletedAnexo = await this.cardService.deleteAnexo(anexoId);
-    console.log("Anexo deletado:", deletedAnexo);
     return deletedAnexo;
   }
 
   @Get('buscar-por-url')
   async getAnexoByUrl(@Query('url') url: string) {
     const anexo = await this.cardService.getAnexoByUrl(url);
-    console.log("Anexo encontrado:", anexo);
     return anexo;
   }
 
@@ -124,7 +167,6 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
   @Get('buscar-por-id')
   async getAnexoById(@Query('id') id: number) {
     const anexo = await this.cardService.getAnexoById(id);
-    console.log("Anexo encontrado:", anexo);
     return anexo;
   }
 
@@ -307,7 +349,6 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
     @Query('entityId', ParseIntPipe) entityId: number,
     @Query('empresaId', ParseIntPipe) empresaId: number
   ) {
-    console.log('cardId - controller', cardId)
 
     return await this.cardService.searchCardById(cardId, entityId, empresaId);
   }
@@ -378,7 +419,6 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
 
   @Post('import')
   async import(@Body() body) {
-    //console.log('%%%%%%% Controller Card')
 
     const { name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value } = body;
     return await this.cardService.import(name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value);
@@ -401,7 +441,6 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
 
   @Post('upsert')
   async upsertEsquadria(@Body() esquadriaData) {
-    //console.log('modulo esquadrias controller')
     return await this.cardService.upsertEsquadria(esquadriaData);
   }
 
@@ -529,6 +568,10 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
     @Query('dataInicial') dataInicial: string,
     @Query('dataFinal') dataFinal: string
   ) {
+
+
+    //console.log('data inicial:' , dataInicial)
+    //console.log('data inicial:' , dataFinal)
     return await this.cardService.findCardsByEntityAndEmpresa(entityId, empresaId, dataInicial, dataFinal);
   }
 
@@ -539,8 +582,8 @@ async addAnexo(@Param('cardId', ParseIntPipe) cardId: number, @Body() body) {
 
   @Post('update')
   async update(@Body() body) {
-    const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco  } = body;
-    return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco );
+    const { id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco, participante_id } = body;
+    return await this.cardService.update(id, name, state, city, fone, email, column_id, entity_id, empresa_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco, participante_id);
   }
 
 

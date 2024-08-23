@@ -9,6 +9,118 @@ export class CardService {
   constructor(private databaseService: DatabaseService) { }
 
 
+// Buscar participantes do tipo Parceiro com o mesmo entity_id
+async getParceirosByEntityId(entityId: number): Promise<any[]> {
+  const query = `
+    SELECT * FROM participantes 
+    WHERE entity_id = $1 AND tipo = 'Parceiro';
+  `;
+  const values = [entityId];
+  return await this.databaseService.query(query, values);
+}
+
+
+
+
+
+  // Buscar todos os participantes de acordo com a empresa
+  async getAllParticipantsByEmpresa(empresaId: number): Promise<any[]> {
+    const query = `
+        SELECT * FROM participantes WHERE empresa_id = $1;
+      `;
+    const values = [empresaId];
+    return await this.databaseService.query(query, values);
+  }
+
+  // Criar um novo participante
+  async createParticipant(
+    name: string,
+    email: string,
+    telefone: string,
+    endereco: string,
+    tipo: string,
+    state: string,
+    city: string,
+    empresa_id: number,
+    entity_id: number,
+    cpf: string,
+  ): Promise<any> {
+    const query = `
+        INSERT INTO participantes (name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *;
+      `;
+    const values = [name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  // Atualizar um participante existente
+  async updateParticipant(
+    id: number,
+    name: string,
+    email: string,
+    telefone: string,
+    endereco: string,
+    tipo: string,
+    state: string,
+    city: string,
+    empresa_id: number,
+    entity_id: number,
+    cpf: string,
+  ): Promise<any> {
+    const query = `
+        UPDATE participantes
+        SET name = $2, email = $3, telefone = $4, endereco = $5, tipo = $6, state = $7, city = $8, empresa_id = $9, entity_id = $10, cpf = $11
+        WHERE id = $1
+        RETURNING *;
+      `;
+    const values = [id, name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+  // Excluir um participante
+  async deleteParticipant(id: number): Promise<any> {
+    const query = `
+        DELETE FROM participantes
+        WHERE id = $1
+        RETURNING *;
+      `;
+    const values = [id];
+    const result = await this.databaseService.query(query, values);
+    return result[0];
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -17,6 +129,7 @@ export class CardService {
       SELECT * FROM participantes WHERE cpf = $1;
     `;
     const result = await this.databaseService.query(query, [cpf]);
+
 
     if (result.length > 0) {
       return { success: true, data: result[0] };
@@ -43,7 +156,7 @@ export class CardService {
       SELECT * FROM participantes WHERE cpf = $1;
     `;
     const existingResult = await this.databaseService.query(existingQuery, [cpf]);
-  
+
     if (existingResult.length > 0) {
       // Se o cliente já existir, atualiza os dados
       const updateQuery = `
@@ -54,10 +167,10 @@ export class CardService {
       `;
       const updateValues = [cpf, name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id];
       const updateResult = await this.databaseService.query(updateQuery, updateValues);
-  
+
       return { success: true, message: 'Cliente atualizado com sucesso.', data: updateResult[0] };
     }
-  
+
     // Se o cliente não existir, insere um novo registro
     const insertQuery = `
       INSERT INTO participantes (name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf)
@@ -66,10 +179,10 @@ export class CardService {
     `;
     const insertValues = [name, email, telefone, endereco, tipo, state, city, empresa_id, entity_id, cpf];
     const insertResult = await this.databaseService.query(insertQuery, insertValues);
-  
+
     return { success: true, message: 'Cliente criado com sucesso.', data: insertResult[0] };
   }
-  
+
 
 
 
@@ -96,7 +209,7 @@ export class CardService {
     try {
       // Inicia uma transação
       await this.databaseService.query('BEGIN');
-  
+
       // Insere a mensagem na tabela de mensagens
       const insertMessageQuery = `
         INSERT INTO messages(id_remetente, id_destinatario, message, created_at, read, empresa_id) 
@@ -105,10 +218,10 @@ export class CardService {
       `;
       const messageValues = [id_remetente, id_destinatario, message, read, empresa_id]; // Adiciona empresa_id aqui
       const messageResult = await this.databaseService.query(insertMessageQuery, messageValues);
-  
+
       // Finaliza a transação com sucesso
       await this.databaseService.query('COMMIT');
-  
+
       return messageResult[0]; // Retorna a mensagem adicionada
     } catch (error) {
       // Reverte todas as operações se ocorrer algum erro
@@ -116,7 +229,7 @@ export class CardService {
       throw new Error('Erro ao adicionar mensagem: ' + error.message);
     }
   }
-  
+
 
 
 
@@ -143,14 +256,15 @@ export class CardService {
     pedido_number: string,
     etiqueta_id: number,
     cpf: string,
-    endereco: string
+    endereco: string,
+    participante_id: number
   ) {
 
     const query = `
       UPDATE cards
       SET name = $2, state = $3, city = $4, fone = $5, email = $6, column_id = $7, entity_id = $8,
           document_number = $9, cost_value = $10, sale_value = $11, status = $12, 
-          status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18, cpf = $19, endereco = $20
+          status_date = $15, origem = $13, produto = $14, second_document_number = $16, pedido_number = $17, etiqueta_id = $18, cpf = $19, endereco = $20, participante_id = $21
       WHERE card_id = $1
       RETURNING *
     `;
@@ -173,7 +287,7 @@ export class CardService {
     }
 
 
-    const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco];
+    const values = [id, name, state, city, fone, email, column_id, entity_id, document_number, cost_value, sale_value, status, origem, produto, status_date, second_document_number, pedido_number, etiqueta_id, cpf, endereco, participante_id];
     const result = await this.databaseService.query(query, values);
     return result;
   }
@@ -423,9 +537,6 @@ export class CardService {
   async searchCards(searchParams: any) {
     const { searchType, searchTerm, entityId, empresaId } = searchParams;
 
-    console.log('searchType:', searchType);  // Adicione este log
-    console.log('searchTerm:', searchTerm);  // Adicione este log
-
     let conditions = '';
     const values = [entityId, empresaId, `%${searchTerm}%`];
 
@@ -537,7 +648,7 @@ export class CardService {
     const result = await this.databaseService.query(query, values);
     return result;  // Retorna todos os anexos do card
   }
-  
+
 
 
 
@@ -549,10 +660,9 @@ export class CardService {
     `;
     const values = [cardId, empresaId, url, nomeArquivo, tamanho, tipoArquivo, comment, setor, userId];
     const result = await this.databaseService.query(query, values);
-    console.log("Anexo adicionado:", result);
     return result[0];  // Retorna o anexo adicionado
   }
-  
+
 
 
   async deleteAnexo(anexoId: number) {
@@ -563,31 +673,26 @@ export class CardService {
     `;
     const values = [anexoId];
     const result = await this.databaseService.query(query, values);
-    console.log("Resultado da exclusão do anexo:", result);
     return result[0];  // Retorna o anexo excluído
   }
 
   async getAnexoByUrl(url: string) {
-    console.log(`Buscando anexo pelo URL: ${url}`);
     const query = `
       SELECT * FROM anexos
       WHERE url = $1;
     `;
     const values = [url];
     const result = await this.databaseService.query(query, values);
-    console.log("Anexo encontrado:", result);
     return result[0];  // Retorna o anexo encontrado
   }
 
   async getAnexoById(id: number) {
-    console.log(`Buscando anexo pelo ID: ${id}`);
     const query = `
       SELECT * FROM anexos
       WHERE id = $1;
     `;
     const values = [id];
     const result = await this.databaseService.query(query, values);
-    console.log("Anexo encontrado:", result);
     return result[0];  // Retorna o anexo encontrado
   }
 
@@ -807,7 +912,6 @@ export class CardService {
 
   async searchCardById(cardId: number, entityId: number, empresaId: number) {
 
-    console.log('cardId - service', cardId)
     const query = `
       SELECT c.*, me.nome_obra FROM cards c
       LEFT JOIN modulo_esquadrias me ON me.card_id = c.card_id
@@ -845,7 +949,7 @@ export class CardService {
     return result;
   }
 
-  
+
 
 
 
@@ -1002,7 +1106,6 @@ export class CardService {
   }
 
   async upsertEsquadria(esquadriaData) {
-    //console.log('modulo esquadrias service');
     const upsertQuery = `
       INSERT INTO modulo_esquadrias (
         card_id, nome_obra, contato_obra, previsao_medicao, status_medicao,
@@ -1335,7 +1438,6 @@ export class CardService {
   }
 
   async getTotalSalesFromAfilhados(userId: number): Promise<number> {
-    //console.log('CardService - Buscando vendas dos afilhados para', userId);
 
     const query = `
       SELECT SUM(c.cost_value) AS total_sales
@@ -1349,7 +1451,6 @@ export class CardService {
     const values = [userId];
     try {
       const result = await this.databaseService.query(query, values);
-      //console.log('Resultado das vendas dos afilhados', result);
       return result[0] && result[0].total_sales ? parseFloat(result[0].total_sales) : 0;
     } catch (error) {
       //console.error('Erro ao executar a query de vendas dos afilhados', error);
@@ -1376,28 +1477,26 @@ export class CardService {
       throw new Error('Usuário não encontrado');
     }
     const isPremium = userResult[0].is_premium;
-    console.log(isPremium)
-  
+
     if (!isPremium) {
       // Verificar a quantidade de cards existentes para o usuário
       const countQuery = 'SELECT COUNT(*) as card_count FROM cards WHERE entity_id = $1';
       const countResult = await this.databaseService.query(countQuery, [entity_id]);
       const cardCount = parseInt(countResult[0].card_count, 10);
-      console.log(cardCount)
 
-  
+
       if (cardCount >= 100) {
         throw new Error('Usuário não premium não pode criar mais de 100 cards');
       }
     }
-  
+
     const status = ''; // Definindo status como uma string vazia
     const query = 'INSERT INTO cards(name, state, city, fone, email, column_id, entity_id, empresa_id, status) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *';
     const values = [name, state, city, fone, email, column_id, entity_id, empresa_id, status];
     const result = await this.databaseService.query(query, values);
     return result[0];
   }
-  
+
 
 
 

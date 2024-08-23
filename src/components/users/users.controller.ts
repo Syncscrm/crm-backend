@@ -63,7 +63,6 @@ async sendEmail(
   @Param('empresaId') empresaId: number,
   @Body() emailData: { to: string; subject: string; text: string }
 ) {
-  console.log('controller', empresaId);
   await this.usersService.sendEmail(empresaId, emailData);
   return { message: 'Email sent successfully' };
 }
@@ -102,7 +101,6 @@ async create(@Body() body) {
   // Agora incluindo o avatar e empresa_id na extração do corpo da requisição
   const { userEmail, username, password, email, address, city, state, cep, fone, avatar, empresa_id } = body;
 
-  console.log('### CREATE ### Controller - userEmail:', userEmail);
 
   // Passe todos os parâmetros, incluindo o avatar e empresa_id, para o serviço
   return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar, empresa_id);
@@ -145,7 +143,6 @@ async updateColunaPedido(
       empresa_id?: number // Adicionando o campo empresa_id
     }
   ) {
-    console.log('Recebendo solicitação para atualizar usuário:', userId, body);
     try {
       const updatedUser = await this.usersService.updateUser(userId, body);
       return {
@@ -169,7 +166,6 @@ async updateColunaPedido(
     @Query('empresaId', ParseIntPipe) empresaId: number
   ) {
 
-    console.log(userId, empresaId)
     const permissions = await this.usersService.getUserColumnPermissions(userId, empresaId);
     return permissions;
   }
@@ -283,13 +279,11 @@ async updateColunaPedido(
   @Get('pedido/:cardId')
   async findPedidoByCardId(@Param('cardId', ParseIntPipe) cardId: number) {
 
-    console.log('pedido/:cardId')
     return await this.usersService.findPedidoByCardId(cardId);
   }
 
   @Post('upsert-pedido')
   async upsertPedido(@Body() pedidoData: any) {
-    console.log('upsert-pedid')
     return await this.usersService.upsertPedido(pedidoData);
   }
 
@@ -562,7 +556,6 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
   async buscarEtiquetas(
     @Param('empresaId', ParseIntPipe) empresaId: number,
   ) {
-    console.log('controller getEtiquetas')
     return await this.usersService.getEtiquetas(empresaId);
   }
 
@@ -570,7 +563,6 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
   async buscarOrigens(
     @Param('empresaId', ParseIntPipe) empresaId: number,
   ) {
-    console.log('controller getOrigens')
     return await this.usersService.getOrigens(empresaId);
   }
 
@@ -578,7 +570,6 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
   async buscarColumns(
     @Param('empresaId', ParseIntPipe) empresaId: number,
   ) {
-    console.log('controller getColumns')
     return await this.usersService.getColumns(empresaId);
   }
 
@@ -586,7 +577,6 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
   async buscarProdutos(
     @Param('empresaId', ParseIntPipe) empresaId: number,
   ) {
-    console.log('controller getProdutos')
     return await this.usersService.getProdutos(empresaId);
   }
 
@@ -925,17 +915,6 @@ async updateCor(@Param('id', ParseIntPipe) id: number, @Body() body) {
     }
   }
 
-  // // src/users/users.controller.ts
-  // @Post('create')
-  // async create(@Body() body) {
-  //   // Agora incluindo o avatar na extração do corpo da requisição
-  //   const { userEmail, username, password, email, address, city, state, cep, fone, avatar } = body;
-
-  //   console.log('### CREATE ### Controller - userEmail:', userEmail);
-
-  //   // Passe todos os parâmetros, incluindo o avatar, para o serviço
-  //   return await this.usersService.create(userEmail, username, password, email, address, city, state, cep, fone, avatar);
-  // }
 
 
 

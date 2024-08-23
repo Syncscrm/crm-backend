@@ -1,9 +1,47 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Put, Delete } from '@nestjs/common';
 import { ProcessColumnsService } from './processColumns.service';
 
-@Controller('process-columns')  
+@Controller('process-columns')
 export class ProcessColumnsController {
-  constructor(private readonly processColumnsService: ProcessColumnsService) {}
+  constructor(private readonly processColumnsService: ProcessColumnsService) { }
+
+
+
+
+
+
+
+  @Get('top-10-potential-sales/:entityId')
+  async getTop10PotentialSales(@Param('entityId', ParseIntPipe) entityId: number): Promise<any[]> {
+    return await this.processColumnsService.getTop10PotentialSales(entityId);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @Get('system-status')
+  async getSystemStatus(): Promise<any> {
+    return await this.processColumnsService.getLatestStatus();
+  }
 
   @Get('by-company/:empresaId')
   async listByCompany(@Param('empresaId', ParseIntPipe) empresaId: number): Promise<any> {

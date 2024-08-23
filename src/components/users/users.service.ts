@@ -98,7 +98,6 @@ export class UsersService {
   // -------------------------------------------------------------
   // -------------------------------------------------------------
   async sendEmail(empresaId: number, emailData: { to: string; subject: string; text: string }): Promise<void> {
-    console.log('service', empresaId);
 
     const query = `
       SELECT email_sender_address, email_sender_name, email_smtp_server, email_smtp_port, 
@@ -110,7 +109,6 @@ export class UsersService {
 
     if (result.length > 0) {
       const emailConfig = result[0];
-      console.log('Email Configuration:', emailConfig);
 
       const transporter = nodemailer.createTransport({
         host: emailConfig.email_smtp_server,
@@ -131,7 +129,6 @@ export class UsersService {
 
       await transporter.sendMail(mailOptions);
     } else {
-      console.log(`Empresa com ID ${empresaId} não encontrada.`);
     }
   }
 
@@ -225,8 +222,7 @@ export class UsersService {
       empresa_id?: number
     }
   ): Promise<any> {
-    console.log('Atualizando usuário com ID:', userId);
-    console.log('Dados recebidos para atualização:', updates);
+
 
     const userFields = ['username', 'fone', 'avatar', 'is_active', 'meta_user', 'meta_grupo', 'entidade', 'access_level', 'user_type'];
     const addressFields = ['address', 'city', 'state', 'cep'];
@@ -239,8 +235,7 @@ export class UsersService {
     if (userQueryParts.length > 0) {
       const query = `UPDATE users SET ${userQueryParts.join(', ')} WHERE id = $${userQueryParts.length + 1}`;
       userQueryValues.push(userId);
-      console.log('Query de atualização de usuário:', query);
-      console.log('Valores de atualização de usuário:', userQueryValues);
+
       await this.databaseService.query(query, userQueryValues);
     }
 
@@ -258,15 +253,13 @@ export class UsersService {
       if (addressExists) {
         addressQueryValues.push(userId);
         const addressQuery = `UPDATE addresses SET ${addressQueryParts.join(', ')} WHERE user_id = $${addressQueryParts.length + 1}`;
-        console.log('Query de atualização de endereço:', addressQuery);
-        console.log('Valores de atualização de endereço:', addressQueryValues);
+
         await this.databaseService.query(addressQuery, addressQueryValues);
       } else {
         const addressQuery = 'INSERT INTO addresses(user_id, address, city, state, cep, empresa_id) VALUES($1, $2, $3, $4, $5, $6)';
         addressQueryValues.unshift(userId); // Adiciona userId no início
         addressQueryValues.push(updates.empresa_id); // Adiciona empresa_id no fim
-        console.log('Query de inserção de endereço:', addressQuery);
-        console.log('Valores de inserção de endereço:', addressQueryValues);
+
         await this.databaseService.query(addressQuery, addressQueryValues);
       }
     }
@@ -302,30 +295,7 @@ export class UsersService {
     return result;
   }
 
-  // async addColumnPermissionToUser(userId: number, columnId: number, canEdit: boolean, empresaId: number): Promise<void> {
-  //   console.log('addColumnPermissionToUser');
-  //   const query = `
-  //     INSERT INTO user_permissions (user_id, column_id, can_edit, empresa_id)
-  //     VALUES ($1, $2, $3, $4)
-  //     ON CONFLICT (user_id, column_id) DO UPDATE SET can_edit = EXCLUDED.can_edit, updated_at = CURRENT_TIMESTAMP
-  //   `;
-  //   await this.databaseService.query(query, [userId, columnId, canEdit, empresaId]);
-  // }
 
-
-  // async addColumnPermissionToUser(userId: number, columnId: number, canEdit: boolean, empresaId: number): Promise<void> {
-  //   const query = `
-  //     INSERT INTO user_permissions (user_id, column_id, can_edit, empresa_id)
-  //     VALUES ($1, $2, $3, $4)
-  //     ON CONFLICT (user_id, column_id, empresa_id) DO UPDATE SET can_edit = EXCLUDED.can_edit, updated_at = CURRENT_TIMESTAMP
-  //   `;
-  //   await this.databaseService.query(query, [userId, columnId, canEdit, empresaId]);
-  // }
-
-  // async removeColumnPermissionFromUser(userId: number, columnId: number, empresaId: number): Promise<void> {
-  //   const query = 'DELETE FROM user_permissions WHERE user_id = $1 AND column_id = $2 AND empresa_id = $3';
-  //   await this.databaseService.query(query, [userId, columnId, empresaId]);
-  // }
 
   async getUserColumns(userId: number, empresaId: number): Promise<any[]> {
     const query = 'SELECT column_id FROM user_columns WHERE user_id = $1 AND empresa_id = $2';
@@ -647,46 +617,11 @@ export class UsersService {
 
 
 
-
-
-
-
-
-
-
-  // async addColumnPermissionToUser(userId: number, columnId: number, canEdit: boolean, empresaId: number): Promise<void> {
-  //   console.log('addColumnPermissionToUser')
-  //   const query = `
-  //     INSERT INTO user_permissions (user_id, column_id, can_edit, empresa_id)
-  //     VALUES ($1, $2, $3, $4)
-  //     ON CONFLICT (user_id, column_id) DO UPDATE SET can_edit = EXCLUDED.can_edit, updated_at = CURRENT_TIMESTAMP
-  //   `;
-  //   await this.databaseService.query(query, [userId, columnId, canEdit, empresaId]);
-  // }
-
-  // async addColumnToUser(userId: number, columnId: number): Promise<void> {
-  //   const query = 'INSERT INTO user_columns (user_id, column_id) VALUES ($1, $2) ON CONFLICT DO NOTHING';
-  //   await this.databaseService.query(query, [userId, columnId]);
-  // }
-
-
-
-
-
-
-
-
-
-
-
-
-
   // ---------- modulo pedidos -------------------
 
 
 
   async findPedidoByCardId(cardId: number) {
-    console.log('findPedidoByCardId')
     const query = `
     SELECT * FROM pedidos WHERE card_id = $1;
   `;
@@ -695,109 +630,8 @@ export class UsersService {
     return result[0];
   }
 
-  //   async upsertPedido(pedidoData: any) {
-  //     console.log('upsertPedido');
-  //     const query = `
-  //     INSERT INTO pedidos (
-  //         card_id, numero_pedido, status_pedido, data_status, nome_obra, representante,
-  //         nome_cliente, cpf_cnpj, telefone_cliente, nome_contato, email_nota_fiscal,
-  //         representante_legal_nome, representante_legal_email, representante_legal_cpf,
-  //         endereco_cobranca_responsavel, endereco_cobranca_telefone, endereco_cobranca_email,
-  //         endereco_cobranca_logradouro, endereco_cobranca_numero, endereco_cobranca_complemento,
-  //         endereco_cobranca_bairro, endereco_cobranca_cidade, endereco_cobranca_uf, endereco_cobranca_cep,
-  //         endereco_cobranca_condominio, endereco_entrega_logradouro, endereco_entrega_numero,
-  //         endereco_entrega_complemento, endereco_entrega_bairro, endereco_entrega_cidade,
-  //         endereco_entrega_uf, endereco_entrega_cep, endereco_entrega_condominio, gestor_obra_nome,
-  //         gestor_obra_telefone, gestor_obra_email, valor_total_contrato, valor_total_terceiros, condicoes_pagamento,
-  //         condicoes_pagamento_terceiro, previsao_medicao, previsao_entrega, observacoes, empresa_id,
-  //         valor_instalacao, valor_frete, valor_abatimento_showroom,
-  //         valor_instalacao_pvc, valor_frete_esquadrias, valor_projeto, valor_vidros_separados,
-  //         valor_externas_esquadrias, desconto_externas, valor_final_externas,
-  //         valor_outros_esquadrias, desconto_outros, valor_final_outros
-  //     ) VALUES (
-  //         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-  //         $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
-  //         $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57
-  //     )
-  //     ON CONFLICT (card_id) DO UPDATE SET
-  //         numero_pedido = EXCLUDED.numero_pedido,
-  //         status_pedido = EXCLUDED.status_pedido,
-  //         data_status = EXCLUDED.data_status,
-  //         nome_obra = EXCLUDED.nome_obra,
-  //         representante = EXCLUDED.representante,
-  //         nome_cliente = EXCLUDED.nome_cliente,
-  //         cpf_cnpj = EXCLUDED.cpf_cnpj,
-  //         telefone_cliente = EXCLUDED.telefone_cliente,
-  //         nome_contato = EXCLUDED.nome_contato,
-  //         email_nota_fiscal = EXCLUDED.email_nota_fiscal,
-  //         representante_legal_nome = EXCLUDED.representante_legal_nome,
-  //         representante_legal_email = EXCLUDED.representante_legal_email,
-  //         representante_legal_cpf = EXCLUDED.representante_legal_cpf,
-  //         endereco_cobranca_responsavel = EXCLUDED.endereco_cobranca_responsavel,
-  //         endereco_cobranca_telefone = EXCLUDED.endereco_cobranca_telefone,
-  //         endereco_cobranca_email = EXCLUDED.endereco_cobranca_email,
-  //         endereco_cobranca_logradouro = EXCLUDED.endereco_cobranca_logradouro,
-  //         endereco_cobranca_numero = EXCLUDED.endereco_cobranca_numero,
-  //         endereco_cobranca_complemento = EXCLUDED.endereco_cobranca_complemento,
-  //         endereco_cobranca_bairro = EXCLUDED.endereco_cobranca_bairro,
-  //         endereco_cobranca_cidade = EXCLUDED.endereco_cobranca_cidade,
-  //         endereco_cobranca_uf = EXCLUDED.endereco_cobranca_uf,
-  //         endereco_cobranca_cep = EXCLUDED.endereco_cobranca_cep,
-  //         endereco_cobranca_condominio = EXCLUDED.endereco_cobranca_condominio,
-  //         endereco_entrega_logradouro = EXCLUDED.endereco_entrega_logradouro,
-  //         endereco_entrega_numero = EXCLUDED.endereco_entrega_numero,
-  //         endereco_entrega_complemento = EXCLUDED.endereco_entrega_complemento,
-  //         endereco_entrega_bairro = EXCLUDED.endereco_entrega_bairro,
-  //         endereco_entrega_cidade = EXCLUDED.endereco_entrega_cidade,
-  //         endereco_entrega_uf = EXCLUDED.endereco_entrega_uf,
-  //         endereco_entrega_cep = EXCLUDED.endereco_entrega_cep,
-  //         endereco_entrega_condominio = EXCLUDED.endereco_entrega_condominio,
-  //         gestor_obra_nome = EXCLUDED.gestor_obra_nome,
-  //         gestor_obra_telefone = EXCLUDED.gestor_obra_telefone,
-  //         gestor_obra_email = EXCLUDED.gestor_obra_email,
-  //         valor_total_contrato = EXCLUDED.valor_total_contrato,
-  //         valor_total_terceiros = EXCLUDED.valor_total_terceiros,
-  //         condicoes_pagamento = EXCLUDED.condicoes_pagamento,
-  //         condicoes_pagamento_terceiro = EXCLUDED.condicoes_pagamento_terceiro,
-  //         previsao_medicao = EXCLUDED.previsao_medicao,
-  //         previsao_entrega = EXCLUDED.previsao_entrega,
-  //         observacoes = EXCLUDED.observacoes,
-  //         valor_instalacao = EXCLUDED.valor_instalacao,
-  //         valor_frete = EXCLUDED.valor_frete,
-  //         valor_abatimento_showroom = EXCLUDED.valor_abatimento_showroom,
-  //         valor_instalacao_pvc = EXCLUDED.valor_instalacao_pvc,
-  //         valor_frete_esquadrias = EXCLUDED.valor_frete_esquadrias,
-  //         valor_projeto = EXCLUDED.valor_projeto,
-  //         valor_vidros_separados = EXCLUDED.valor_vidros_separados,
-  //         valor_externas_esquadrias = EXCLUDED.valor_externas_esquadrias,
-  //         desconto_externas = EXCLUDED.desconto_externas,
-  //         valor_final_externas = EXCLUDED.valor_final_externas,
-  //         valor_outros_esquadrias = EXCLUDED.valor_outros_esquadrias,
-  //         desconto_outros = EXCLUDED.desconto_outros,
-  //         valor_final_outros = EXCLUDED.valor_final_outros
-  //     RETURNING *;
-  //     `;
 
-  //     const values = [
-  //         pedidoData.card_id, pedidoData.numero_pedido, pedidoData.status_pedido, pedidoData.data_status, pedidoData.nome_obra,
-  //         pedidoData.representante, pedidoData.nome_cliente, pedidoData.cpf_cnpj, pedidoData.telefone_cliente, pedidoData.nome_contato,
-  //         pedidoData.email_nota_fiscal, pedidoData.representante_legal_nome, pedidoData.representante_legal_email, pedidoData.representante_legal_cpf,
-  //         pedidoData.endereco_cobranca_responsavel, pedidoData.endereco_cobranca_telefone, pedidoData.endereco_cobranca_email,
-  //         pedidoData.endereco_cobranca_logradouro, pedidoData.endereco_cobranca_numero, pedidoData.endereco_cobranca_complemento,
-  //         pedidoData.endereco_cobranca_bairro, pedidoData.endereco_cobranca_cidade, pedidoData.endereco_cobranca_uf, pedidoData.endereco_cobranca_cep,
-  //         pedidoData.endereco_cobranca_condominio, pedidoData.endereco_entrega_logradouro, pedidoData.endereco_entrega_numero,
-  //         pedidoData.endereco_entrega_complemento, pedidoData.endereco_entrega_bairro, pedidoData.endereco_entrega_cidade,
-  //         pedidoData.endereco_entrega_uf, pedidoData.endereco_entrega_cep, pedidoData.endereco_entrega_condominio, pedidoData.gestor_obra_nome,
-  //         pedidoData.gestor_obra_telefone, pedidoData.gestor_obra_email, pedidoData.valor_total_contrato || null, pedidoData.valor_total_terceiros || null, pedidoData.condicoes_pagamento,
-  //         pedidoData.condicoes_pagamento_terceiro, pedidoData.previsao_medicao, pedidoData.previsao_entrega, pedidoData.observacoes, pedidoData.empresa_id,
-  //         pedidoData.valor_instalacao || null, pedidoData.valor_frete || null, pedidoData.valor_abatimento_showroom || null,
-  //         pedidoData.valor_instalacao_pvc || null, pedidoData.valor_frete_esquadrias || null, pedidoData.valor_projeto || null, pedidoData.valor_vidros_separados || null,
-  //         pedidoData.valor_externas_esquadrias || null, pedidoData.desconto_externas || null, pedidoData.valor_final_externas || null,
-  //         pedidoData.valor_outros_esquadrias || null, pedidoData.desconto_outros || null, pedidoData.valor_final_outros || null
-  //     ];
 
-  //     return await this.databaseService.query(query, values);
-  // }
 
   async upsertPedido(pedidoData: any) {
     const query = `
@@ -897,107 +731,6 @@ export class UsersService {
 
     return await this.databaseService.query(query, values);
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // --------------- email -----------------
-
-
-
-  // private imapConfig = {
-  //   imap: {
-  //     user: 'wilianjuniordemellolopes@gmail.com',
-  //     password: 'gnlh yyvi nnbv cvcj', 
-  //     host: 'imap.gmail.com',
-  //     port: 993,
-  //     tls: true,
-  //     tlsOptions: { rejectUnauthorized: false },
-  //     authTimeout: 10000,
-  //   },
-  // };
-
-  // async getEmails(clientEmail: string): Promise<any> {
-  //   try {
-  //     console.log('Iniciando conexão IMAP...');
-  //     const connection = await imaps.connect(this.imapConfig);
-  //     console.log('Conexão IMAP estabelecida.');
-  //     await connection.openBox('INBOX');
-  //     console.log('Caixa de entrada aberta...');
-
-  //     const searchCriteria = ['ALL'];
-  //     const fetchOptions = {
-  //       bodies: ['HEADER', 'TEXT'],
-  //       markSeen: false,
-  //     };
-
-  //     console.log('Iniciando busca de mensagens...');
-  //     const messages = await connection.search(searchCriteria, fetchOptions);
-  //     console.log(`Total de mensagens encontradas: ${messages.length}`);
-  //     const emails = [];
-
-  //     for (const item of messages) {
-  //       const all = item.parts.find((part) => part.which === 'TEXT');
-  //       const id = item.attributes.uid;
-  //       const idHeader = 'Imap-Id: ' + id + '\r\n';
-
-  //       console.log(`Processando mensagem com ID: ${id}`);
-  //       const parsed = await simpleParser(idHeader + all.body);
-  //       console.log('Mensagem parseada:', parsed);
-
-  //       if (parsed.to && parsed.to.value && parsed.from && parsed.from.value) {
-  //         console.log(`Email de: ${parsed.from.text}, para: ${parsed.to.text}`);
-  //         if (parsed.to.value[0].address === clientEmail || parsed.from.value[0].address === clientEmail) {
-  //           emails.push({
-  //             subject: parsed.subject,
-  //             date: parsed.date,
-  //             from: parsed.from.text,
-  //             to: parsed.to.text,
-  //             text: parsed.text,
-  //           });
-  //         }
-  //       }
-  //     }
-
-  //     console.log(`Total de emails filtrados: ${emails.length}`);
-  //     return emails;
-  //   } catch (error) {
-  //     console.error('Erro ao obter emails:', error);
-  //     throw new Error('Erro ao obter emails');
-  //   }
-  // }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1237,28 +970,24 @@ export class UsersService {
 
   // ---------- parameters - get  -------------
   async getEtiquetas(empresaId: number): Promise<any> {
-    console.log('service getEtiquetas')
 
     const query = 'SELECT * FROM etiquetas WHERE empresa_id = $1';
     return this.databaseService.query(query, [empresaId]);
   }
 
   async getOrigens(empresaId: number): Promise<any> {
-    console.log('service getOrigens')
 
     const query = 'SELECT * FROM origens WHERE empresa_id = $1';
     return this.databaseService.query(query, [empresaId]);
   }
 
   async getColumns(empresaId: number): Promise<any> {
-    console.log('service getColumns')
 
     const query = 'SELECT * FROM process_columns WHERE empresa_id = $1';
     return this.databaseService.query(query, [empresaId]);
   }
 
   async getProdutos(empresaId: number): Promise<any> {
-    console.log('service getProdutos')
 
     const query = 'SELECT * FROM produtos WHERE empresa_id = $1';
     return this.databaseService.query(query, [empresaId]);
@@ -1318,85 +1047,6 @@ export class UsersService {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // async getUserColumnPermissions(userId: number): Promise<{ columnId: number, canEdit: boolean }[]> {
-  //   console.log('getUserColumnPermissions')
-  //   const query = 'SELECT column_id AS "columnId", can_edit AS "canEdit" FROM user_permissions WHERE user_id = $1';
-  //   const result = await this.databaseService.query(query, [userId]);
-  //   return result;
-  // }
-
-
-  // async removeColumnPermissionFromUser(userId: number, columnId: number): Promise<void> {
-  //   console.log('removeColumnPermissionFromUser')
-  //   const query = 'DELETE FROM user_permissions WHERE user_id = $1 AND column_id = $2';
-  //   await this.databaseService.query(query, [userId, columnId]);
-  // }
-
-
-
-
-
-
-
-
-
-  // async addAfilhadoToUser(userId: number, afilhadoId: number): Promise<void> {
-  //   const query = 'INSERT INTO user_afilhados (user_id, afilhado_id) VALUES ($1, $2)';
-  //   await this.databaseService.query(query, [userId, afilhadoId]);
-  // }
-
-  // async removeAfilhadoFromUser(userId: number, afilhadoId: number): Promise<void> {
-  //   const query = 'DELETE FROM user_afilhados WHERE user_id = $1 AND afilhado_id = $2';
-  //   await this.databaseService.query(query, [userId, afilhadoId]);
-  // }
-
-  // async getUserAfilhados(userId: number): Promise<any[]> {
-  //   const query = 'SELECT u.* FROM users u JOIN user_afilhados ua ON ua.afilhado_id = u.id WHERE ua.user_id = $1';
-  //   const result = await this.databaseService.query(query, [userId]);
-  //   return result;
-  // }
-
   async getUserAfilhados(userId: number): Promise<any[]> {
     const query = `
       SELECT u.*, a.address, a.city, a.state, a.cep
@@ -1410,11 +1060,6 @@ export class UsersService {
   }
 
 
-  // async getUserColumns(userId: number): Promise<any[]> {
-  //   const query = 'SELECT column_id FROM user_columns WHERE user_id = $1';
-  //   const result = await this.databaseService.query(query, [userId]);
-  //   return result.map(row => row.column_id);
-  // }
 
   async getUserColumnsInfo(userId: number): Promise<any[]> {
     const query = `
@@ -1429,11 +1074,6 @@ export class UsersService {
   }
 
 
-
-  // async removeColumnFromUser(userId: number, columnId: number): Promise<void> {
-  //   const query = 'DELETE FROM user_columns WHERE user_id = $1 AND column_id = $2';
-  //   await this.databaseService.query(query, [userId, columnId]);
-  // }
 
   async listByCompany(empresaId: number): Promise<any[]> {
     const query = `
@@ -1462,7 +1102,6 @@ export class UsersService {
     const query = 'SELECT COUNT(*) FROM users WHERE empresa_id = $1';
     const result = await this.databaseService.query(query, [empresaId]);
 
-    console.log('Numero de usuários atual: ', parseInt(result[0].count, 10))
     return parseInt(result[0].count, 10);
   }
 
@@ -1470,7 +1109,6 @@ export class UsersService {
   async getNumeroDeLicencas(empresaId: number): Promise<number> {
     const query = 'SELECT numero_de_licencas FROM empresas WHERE id = $1';
     const result = await this.databaseService.query(query, [empresaId]);
-    console.log('Numero de licenças contratadas: ', result[0].numero_de_licencas)
 
 
     return result[0].numero_de_licencas;
